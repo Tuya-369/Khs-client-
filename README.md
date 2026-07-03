@@ -3,7 +3,7 @@ Framework: Next.js (App Router)
 
 Language: JavaScript & React
 
-Styling: Tailwind CSS
+Styling: Tailwind CSS & CSS
 
 Database & Auth: MongoDB
 

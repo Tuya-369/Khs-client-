@@ -1,11 +1,9 @@
 "use client";
 import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 
 export default function LoginForm() {
-  const router = useRouter();
   const [loginData, setLoginData] = useState({
     sapId: "",
     password: "",
@@ -112,7 +110,7 @@ export default function LoginForm() {
             <div className="text-center md:text-left text-xs text-neutral-500 pt-2 border-t border-neutral-100">
               Бүртгэл байхгүй юу?{" "}
               <Link
-                href="/register"
+                href="/auth/register"
                 className="font-semibold text-neutral-950 hover:text-yellow-600 transition-colors"
               >
                 Шинэ бүртгэл үүсгэх

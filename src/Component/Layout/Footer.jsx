@@ -78,7 +78,7 @@ export default function Footer() {
                   {href ? (
                     <a
                       href={href}
-                      className="text-[12px] transition-colors hover:text-neutral-900"
+                      className="text-[12px] transition-colors hover:text-yellow-500"
                     >
                       {text}
                     </a>
@@ -91,7 +91,9 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-400 mb-3.5"></h4>
+            <h4 className="text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-400 mb-3.5">
+              Social Media
+            </h4>
             <div className="flex gap-4 items-center">
               {socialLinks.map(({ label, href, icon }) => (
                 <a
@@ -100,7 +102,7 @@ export default function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={label}
-                  className="text-neutral-400 hover:text-neutral-900 transition-colors duration-200 flex items-center justify-center"
+                  className="text-neutral-400 hover:text-yellow-500 transition-colors duration-200 flex items-center justify-center"
                 >
                   {icon}
                 </a>

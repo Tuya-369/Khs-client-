@@ -1,2 +1,12 @@
-.next/
+
 node_modules/
+coverage/
+
+build/
+
+.env
+.env.local
+
+npm-debug.log*
+
+.next/

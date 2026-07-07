@@ -70,7 +70,7 @@ export default function LoginForm() {
                     href="#"
                     className="text-xs font-medium text-neutral-500 hover:text-yellow-600 transition-colors"
                   >
-                    Нууц үг мартсан?
+                    Нууц үгээ мартсан
                   </a>
                 </div>
                 <input
@@ -95,7 +95,7 @@ export default function LoginForm() {
                   htmlFor="remember-me"
                   className="ml-2 block text-xs text-neutral-500 selection:bg-transparent"
                 >
-                  Намайг санах
+                  Санах
                 </label>
               </div>
 

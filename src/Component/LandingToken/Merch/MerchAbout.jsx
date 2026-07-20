@@ -58,7 +58,6 @@ export default function MerchAbout({ item, onOrder }) {
       imageUrl: item.imageUrl,
       size: selectedSize,
       color: selectedColor,
-      quantity,
       price: 59000,
     });
   };
@@ -166,7 +165,6 @@ export default function MerchAbout({ item, onOrder }) {
               </div>
             </div>
 
-            {/* Үйлдэл хийх товчлуурууд */}
             <div className="flex items-center gap-3 pt-4">
               <button
                 type="button"

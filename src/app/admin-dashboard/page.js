@@ -85,7 +85,6 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 antialiased p-4 sm:p-8">
       <div className="max-w-3xl mx-auto space-y-5">
-        {/* ХЭРЭГЛЭГЧИЙН ПРОФАЙЛ ЗУРАГ БҮХИЙ ТОЛГОЙ ХЭСЭГ */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 sm:p-6 bg-white border border-slate-200 rounded-xl shadow-xs gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-linear-to-tr from-amber-500 to-amber-600 text-white rounded-xl flex items-center justify-center font-bold text-base tracking-wider shadow-sm shrink-0 select-none">
@@ -93,14 +92,14 @@ export default function AdminDashboard() {
             </div>
             <div>
               <h2 className="font-bold text-lg sm:text-xl tracking-tight text-slate-900">
-                Удирдлагын хэсэг
+                Чимэд
               </h2>
               <div className="flex flex-wrap items-center gap-x-2 text-xs text-slate-500 mt-0.5">
                 <span className="font-medium text-slate-700">
-                  Ерөнхий Админ
+                  Захиалгын манжер
                 </span>
                 <span className="text-slate-300">•</span>
-                <span>Систем Хянагч</span>
+                <span>SAP ID: 202699</span>
               </div>
             </div>
           </div>
@@ -191,61 +190,13 @@ export default function AdminDashboard() {
           </div>
 
           {/* 2. Харагдсан эсэхээр шүүх */}
-          <div className="space-y-2 pt-2 border-t border-slate-100">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-              Харагдац
-            </span>
-            <div className="flex flex-wrap gap-1.5">
-              <button
-                type="button"
-                onClick={() => setReadFilter("all")}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
-                  readFilter === "all"
-                    ? "bg-slate-100 border-slate-300 text-slate-800 font-bold"
-                    : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
-                }`}
-              >
-                Бүх харагдац
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setReadFilter("read")}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all flex items-center gap-1.5 ${
-                  readFilter === "read"
-                    ? "border-slate-400 bg-slate-50 text-slate-700 font-bold"
-                    : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
-                }`}
-              >
-                Уншсан
-                <span className="text-[10px] font-mono bg-slate-200/60 text-slate-600 px-1.5 py-0.2 rounded-md">
-                  {getCount("read", "read")}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setReadFilter("unread")}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all flex items-center gap-1.5 ${
-                  readFilter === "unread"
-                    ? "border-amber-500 bg-amber-50 text-amber-700 font-bold"
-                    : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
-                }`}
-              >
-                Уншаагүй
-                <span className="text-[10px] font-mono bg-amber-100 text-amber-600 px-1.5 py-0.2 rounded-md">
-                  {getCount("read", "unread")}
-                </span>
-              </button>
-            </div>
-          </div>
         </div>
 
         {/* ХҮСЭЛТҮҮДИЙН ЖАГСААЛТ */}
         <div className="space-y-3">
           <div className="flex justify-between items-center px-1">
-            <span className="text-xs font-bold text-slate-500">
-              Илэрц: {filteredOrders.length} хүсэлт
+            <span className="text-xs font-bold text-blue-500">
+              {filteredOrders.length} хүсэлт
             </span>
           </div>
 

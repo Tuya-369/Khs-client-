@@ -1,120 +1,135 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
-import { merchItems } from "@/Component/LandingToken/Merch/merchItems";
-
-const MOCK_MERCH_ORDERS = [
-  {
-    id: "M-2401",
-    merchId: 2,
-    employee: "Б. Саран",
-    sap: "202699",
-    department: "Худалдан авалт",
-    item: " Hoodie / XL",
-    qty: 1,
-    orderedAt: "2026-07-18 09:12",
-    confirmed: false,
-    read: false,
-  },
-  {
-    id: "M-2402",
-    merchId: 1,
-    employee: "Э. Төгс",
-    sap: "203011",
-    department: "Ложистик",
-    item: "  Cap / Black",
-    qty: 2,
-    orderedAt: "2026-07-17 14:41",
-    confirmed: true,
-    read: true,
-  },
-  {
-    id: "M-2403",
-    merchId: 1,
-    employee: "Г. Одхүү",
-    sap: "203145",
-    department: "Санхүү",
-    item: " T-shirt / M",
-    qty: 3,
-    orderedAt: "2026-07-19 08:22",
-    confirmed: false,
-    read: true,
-  },
-  {
-    id: "M-2404",
-    merchId: 3,
-    employee: "Н. Энхмаа",
-    sap: "203208",
-    department: "Хүний нөөц",
-    item: "Mug",
-    qty: 4,
-    orderedAt: "2026-07-20 09:05",
-    confirmed: true,
-    read: false,
-  },
-];
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ApiError, api } from "@/lib/api";
+import { clearSession, getAccessToken } from "@/lib/session";
+import DashboardProfileCard from "@/Component/common/DashboardProfileCard";
 
 const FILTERS = [
   { key: "all", label: "Бүгд" },
   { key: "new", label: "Шинэ" },
-  { key: "old", label: "Хуучин" },
+  { key: "confirmed", label: "Батлагдсан" },
+  { key: "unread", label: "Уншаагүй" },
 ];
 
-const PROFILE = {
-  badge: "Түв",
-  name: "Түвшинболор",
-  role: "Худалдан авалтын менежер",
-  sap: "202699",
-};
-
 export default function TokenDashboard() {
-  const orders = MOCK_MERCH_ORDERS;
+  const router = useRouter();
+  const [profile, setProfile] = useState(null);
+  const [orders, setOrders] = useState([]);
   const [activeFilter, setActiveFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const filteredOrders = useMemo(() => {
-    return orders.filter((order) => {
-      if (activeFilter === "all") return true;
-      if (activeFilter === "new") return !order.read && !order.confirmed;
-      if (activeFilter === "old") return order.read || order.confirmed;
-      if (activeFilter === "approve") return !order.confirmed;
-      if (activeFilter === "confirmed") return order.confirmed;
-      if (activeFilter === "unread") return !order.read;
-      return true;
-    });
+  const loadOrders = async (filter = activeFilter) => {
+    const token = getAccessToken();
+    if (!token) {
+      router.push("/auth");
+      return;
+    }
+
+    setLoading(true);
+    setErrorMessage("");
+
+    try {
+      const [meResponse, ordersResponse] = await Promise.all([
+        api.me(token),
+        api.getManagerOrders(token, filter),
+      ]);
+
+      setProfile(meResponse?.data?.user || null);
+      setOrders(ordersResponse?.data || []);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        clearSession();
+        router.push("/auth");
+        return;
+      }
+
+      setErrorMessage("Merch захиалга татах үед алдаа гарлаа.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadOrders(activeFilter);
   }, [activeFilter]);
 
-  const getOrderImage = (order) => {
-    const matchedMerch = merchItems.find((item) => item.id === order.merchId);
-    return matchedMerch?.imageUrl || null;
+  const filteredOrders = useMemo(() => {
+    return orders;
+  }, [orders]);
+
+  const formatDate = (value) => {
+    if (!value) return "";
+    return new Date(value).toLocaleString("mn-MN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const handleConfirm = async (id) => {
+    const token = getAccessToken();
+    if (!token) {
+      router.push("/auth");
+      return;
+    }
+
+    try {
+      await api.confirmOrder(token, id);
+      await loadOrders(activeFilter);
+    } catch {
+      setErrorMessage("Захиалга батлах үед алдаа гарлаа.");
+    }
+  };
+
+  const handleMarkRead = async (id) => {
+    const target = orders.find((order) => order.id === id);
+    if (!target || target.isReadByManager) {
+      return;
+    }
+
+    const token = getAccessToken();
+    if (!token) {
+      router.push("/auth");
+      return;
+    }
+
+    try {
+      await api.markOrderRead(token, id);
+      await loadOrders(activeFilter);
+    } catch {
+      setErrorMessage("Уншсан төлөв шинэчлэх үед алдаа гарлаа.");
+    }
   };
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-gray-800 font-sans p-8">
       <div className="max-w-6xl mx-auto space-y-8">
-        <div className="flex items-center justify-between p-6 bg-white border border-gray-200/60 rounded-2xl shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-linear-to-tr from-slate-700 to-slate-900 text-white rounded-full flex items-center justify-center font-bold text-sm">
-              {PROFILE.badge}
-            </div>
-            <div>
-              <h2 className="font-semibold text-xl tracking-tight text-gray-900">
-                Token Dashboard
-              </h2>
-              <p className="text-xs font-medium text-gray-500 mt-0.5">
-                {PROFILE.name} • {PROFILE.role}
-              </p>
-              <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
-                SAP ID: {PROFILE.sap}
-              </p>
-            </div>
+        <DashboardProfileCard
+          badge={profile?.firstName?.charAt(0)?.toUpperCase() || "T"}
+          name={profile ? `${profile.lastName} ${profile.firstName}` : "..."}
+          subtitle="Худалдан авалтын менежер"
+          sapId={profile?.sapId || "-"}
+          totalLabel="Нийт захиалга"
+          totalValue={orders.length}
+        />
+
+        {loading && (
+          <div className="p-4 bg-white border border-slate-200 rounded-xl text-sm text-slate-500">
+            Захиалгууд ачаалж байна...
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold px-3 py-1 bg-slate-100 text-slate-700 rounded-full font-mono">
-              Нийт: {orders.length}
-            </span>
+        )}
+
+        {errorMessage && (
+          <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700">
+            {errorMessage}
           </div>
-        </div>
+        )}
 
         <div className="bg-white border border-gray-200/60 rounded-2xl shadow-sm p-6 space-y-5">
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 border-b border-gray-200 pb-4">
@@ -123,9 +138,6 @@ export default function TokenDashboard() {
                 Захиалгын хяналтын хэсэг
               </h3>
             </div>
-            <span className="text-xs font-semibold px-2.5 py-1 bg-amber-50 text-amber-700 rounded-md">
-              Нийт: {filteredOrders.length}
-            </span>
           </div>
 
           <div className="flex flex-wrap gap-2">
@@ -151,15 +163,16 @@ export default function TokenDashboard() {
             {filteredOrders.map((order) => (
               <div
                 key={order.id}
+                onClick={() => handleMarkRead(order.id)}
                 className="p-4 bg-slate-50 border border-slate-200/80 rounded-xl space-y-4"
               >
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                   <div className="flex items-start gap-3">
                     <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200 bg-white shrink-0">
-                      {getOrderImage(order) ? (
+                      {order?.merchItem?.imageUrl ? (
                         <Image
-                          src={getOrderImage(order)}
-                          alt={order.item}
+                          src={order.merchItem.imageUrl}
+                          alt={order.merchItem.title}
                           fill
                           sizes="64px"
                           className="object-cover"
@@ -172,23 +185,54 @@ export default function TokenDashboard() {
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-gray-900">
-                        {order.item}
+                        {order?.merchItem?.title} / {order.size} / {order.color}
                       </p>
                       <p className="text-xs text-gray-500 mt-0.5">
-                        {order.employee} • SAP {order.sap} • {order.department}
+                        {order?.user?.lastName} {order?.user?.firstName} • SAP{" "}
+                        {order?.user?.sapId}
                       </p>
                     </div>
                   </div>
+
+                  {order.status === "NEW" && (
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleConfirm(order.id);
+                      }}
+                      className="px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
+                    >
+                      Батлах
+                    </button>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                   <div className="px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-600">
                     Захиалсан:{" "}
-                    <span className="font-semibold">{order.orderedAt}</span>
+                    <span className="font-semibold">
+                      {formatDate(order.orderedAt)}
+                    </span>
                   </div>
                   <div className="px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-600">
                     Тоо: <span className="font-semibold">{order.qty}ш</span>
                   </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px]">
+                  <span
+                    className={`px-2 py-1 rounded-md border font-semibold ${
+                      order.status === "CONFIRMED"
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        : "bg-amber-50 text-amber-700 border-amber-200"
+                    }`}
+                  >
+                    {order.status === "CONFIRMED" ? "Батлагдсан" : "Шинэ"}
+                  </span>
+                  <span className="text-slate-500">
+                    {order.isReadByManager ? "Уншсан" : "Уншаагүй"}
+                  </span>
                 </div>
               </div>
             ))}

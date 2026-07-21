@@ -2,8 +2,11 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { api, ApiError } from "@/lib/api";
 
 export default function RegisterForm() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     lastName: "",
     firstName: "",
@@ -12,19 +15,50 @@ export default function RegisterForm() {
     password: "",
     confirmPassword: "",
   });
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMessage("");
+    setSuccessMessage("");
+
     if (formData.password !== formData.confirmPassword) {
-      alert("Нууц үг зөрүүтэй байна!");
+      setErrorMessage("Нууц үг зөрүүтэй байна.");
       return;
     }
-    console.log("Бүртгүүлэх өгөгдөл:", formData);
+
+    setSubmitting(true);
+    try {
+      await api.register({
+        sapId: formData.sapId,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phoneNumber: formData.phoneNumber,
+        password: formData.password,
+      });
+
+      setSuccessMessage(
+        "Бүртгэл амжилттай үүслээ. Нэвтрэх хуудас руу шилжиж байна...",
+      );
+      setTimeout(() => {
+        router.push("/auth");
+      }, 1200);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setErrorMessage(error.message || "Бүртгүүлэх үед алдаа гарлаа.");
+      } else {
+        setErrorMessage("Бүртгүүлэх үед алдаа гарлаа. Дахин оролдоно уу.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -155,10 +189,23 @@ export default function RegisterForm() {
 
               <button
                 type="submit"
+                disabled={submitting}
                 className="w-full rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-yellow-400 hover:text-neutral-900 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all mt-3"
               >
-                Бүртгүүлэх
+                {submitting ? "Түр хүлээнэ үү..." : "Бүртгүүлэх"}
               </button>
+
+              {errorMessage && (
+                <p className="text-xs text-rose-600 font-medium">
+                  {errorMessage}
+                </p>
+              )}
+
+              {successMessage && (
+                <p className="text-xs text-emerald-600 font-medium">
+                  {successMessage}
+                </p>
+              )}
             </form>
 
             <div className="text-center md:text-left text-xs text-neutral-500 pt-2 border-t border-neutral-100">

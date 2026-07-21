@@ -4,7 +4,6 @@ import Image from "next/image";
 import { merchItems } from "@/Component/LandingToken/Merch/merchItems";
 
 export default function MerchCard({
-  sectionTitle = "Брэндийн бүтээгдэхүүнүүд",
   hideTopTexts = false,
   excludeItemId,
   embedded = false,
@@ -43,9 +42,6 @@ export default function MerchCard({
               Merch Store
             </p>
           )}
-          <h3 className="text-xl font-bold tracking-tight text-neutral-900 md:text-2xl mt-1">
-            {sectionTitle}
-          </h3>
         </div>
         {!hideTopTexts && (
           <span className="text-sm font-medium text-neutral-500 cursor-pointer hover:text-yellow-400 transition-colors">
@@ -64,8 +60,6 @@ export default function MerchCard({
           >
             <div className="flex flex-col h-full min-w-0">
               {" "}
-              {/* Хэмжээ халихаас сэргийлж min-w-0 нэмэв */}
-              {/* img*/}
               <div className="aspect-square w-full bg-white p-3 overflow-hidden relative flex items-center justify-center">
                 <Image
                   src={item.imageUrl}
@@ -76,7 +70,6 @@ export default function MerchCard({
                   className="max-h-full max-w-full object-contain transition-transform duration-500 group-hover:scale-105"
                 />
               </div>
-              {/* info section */}
               <div className="p-3 md:p-4 flex flex-1 flex-col min-w-0">
                 <h4 className="text-sm font-semibold text-neutral-900 group-hover:text-amber-300 transition-colors line-clamp-2 min-h-10 leading-tight">
                   {item.title}
@@ -86,7 +79,6 @@ export default function MerchCard({
                   {item.description}
                 </p>
 
-                {/* Өөрчлөлт орсон хэсэг: size color */}
                 <div className="mt-auto pt-3 flex flex-nowrap items-center gap-1.5 text-[11px] text-neutral-500 w-full overflow-hidden">
                   <span className="bg-neutral-100 px-2 py-0.5 rounded-sm whitespace-nowrap shrink-0">
                     {item.size}

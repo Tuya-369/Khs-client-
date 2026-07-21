@@ -1,49 +1,107 @@
 "use client";
-import { useState } from "react";
-
-const CAR_DATA = [
-  {
-    id: "car1",
-    name: "Toyota Prius 30",
-    plate: "8888 УБА",
-    parts: ["Урд амортизатор", "Тормосны наклад", "Свеч"],
-  },
-  {
-    id: "car2",
-    name: "Hyundai Porter",
-    plate: "1111 УББ",
-    parts: ["Рессор", "Диск муфта", "Агаарын шүүлтүүр"],
-  },
-];
-
-const DRIVER_PROFILE = {
-  name: "Лхамаа",
-  sap: "202699",
-};
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ApiError, api } from "@/lib/api";
+import { clearSession, getAccessToken } from "@/lib/session";
+import DashboardProfileCard from "@/Component/common/DashboardProfileCard";
 
 export default function DriverDashboard() {
-  const [activeCarId, setActiveCarId] = useState(null);
-  const [selectedPart, setSelectedPart] = useState(null);
+  const router = useRouter();
+  const [profile, setProfile] = useState(null);
+  const [vehicles, setVehicles] = useState([]);
+  const [activeCarId, setActiveCarId] = useState("");
+  const [selectedPartId, setSelectedPartId] = useState("");
   const [damageImages, setDamageImages] = useState([]);
   const [issueDescription, setIssueDescription] = useState("");
-  const [submittedOrders, setSubmittedOrders] = useState([
-    {
-      id: "order-demo-1",
-      carName: "Toyota Prius 30",
-      partName: "Тормосны наклад",
-      description: "Тоормос дуугараад, үрэлт ихтэй болсон.",
-      status: "approved",
-      createdAt: "2026-07-08 09:20",
-    },
-    {
-      id: "order-demo-2",
-      carName: "Hyundai Porter",
-      partName: "Агаарын шүүлтүүр",
-      description: "Хүч сулраад байгаа тул шалгуулах шаардлагатай.",
-      status: "pending",
-      createdAt: "2026-07-08 11:05",
-    },
-  ]);
+  const [submittedOrders, setSubmittedOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+
+  const activeCar = useMemo(
+    () => vehicles.find((vehicle) => vehicle.id === activeCarId),
+    [vehicles, activeCarId],
+  );
+
+  const statusLabel = (status) => {
+    if (status === "APPROVED") return "Батлагдсан";
+    if (status === "PENDING") return "Хүлээгдэж буй";
+    if (status === "REJECTED") return "Цуцлагдсан";
+    return status;
+  };
+
+  const statusClass = (status) => {
+    if (status === "APPROVED") {
+      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+    }
+    if (status === "PENDING") {
+      return "bg-amber-50 text-amber-700 border-amber-200";
+    }
+    return "bg-rose-50 text-rose-700 border-rose-200";
+  };
+
+  const formatDate = (value) => {
+    if (!value) return "";
+    return new Date(value).toLocaleString("mn-MN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const loadDashboardData = async () => {
+    const token = getAccessToken();
+    if (!token) {
+      router.push("/auth");
+      return;
+    }
+
+    setLoading(true);
+    setErrorMessage("");
+
+    try {
+      const [meResponse, optionsResponse, myRequestsResponse] =
+        await Promise.all([
+          api.me(token),
+          api.getDriverOptions(token),
+          api.getMyRequests(token),
+        ]);
+
+      setProfile(meResponse?.data?.user || null);
+      const loadedVehicles = optionsResponse?.data || [];
+      setVehicles(loadedVehicles);
+      setSubmittedOrders(myRequestsResponse?.data || []);
+
+      if (loadedVehicles.length > 0) {
+        setActiveCarId((prev) => prev || loadedVehicles[0].id);
+      }
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        clearSession();
+        router.push("/auth");
+        return;
+      }
+
+      setErrorMessage("Өгөгдөл татах үед алдаа гарлаа.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      damageImages.forEach((image) => {
+        URL.revokeObjectURL(image.url);
+      });
+    };
+  }, [damageImages]);
 
   const handleDamageImagesUpload = (event) => {
     const files = Array.from(event.target.files || []);
@@ -57,91 +115,118 @@ export default function DriverDashboard() {
       return;
     }
 
-    const readers = imageFiles.map(
-      (file) =>
-        new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            resolve({
-              id: `${file.name}-${file.lastModified}-${Math.random()
-                .toString(36)
-                .slice(2, 8)}`,
-              name: file.name,
-              url: reader.result,
-            });
-          };
-          reader.onerror = () => reject(new Error("read-failed"));
-          reader.readAsDataURL(file);
-        }),
-    );
+    const newImages = imageFiles.map((file) => ({
+      id: `${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`,
+      name: file.name,
+      url: URL.createObjectURL(file),
+      file,
+    }));
 
-    Promise.all(readers)
-      .then((newImages) => {
-        setDamageImages((prev) => [...prev, ...newImages]);
-      })
-      .catch(() => {
-        alert("Зураг уншихад алдаа гарлаа. Дахин оролдоно уу.");
-      })
-      .finally(() => {
-        event.target.value = "";
-      });
+    setDamageImages((prev) => [...prev, ...newImages]);
+    event.target.value = "";
   };
 
   const removeDamageImage = (id) => {
-    setDamageImages((prev) => prev.filter((image) => image.id !== id));
+    setDamageImages((prev) => {
+      const found = prev.find((image) => image.id === id);
+      if (found) {
+        URL.revokeObjectURL(found.url);
+      }
+
+      return prev.filter((image) => image.id !== id);
+    });
   };
 
-  const getCurrentDateTimeLabel = () => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
-      now.getDate(),
-    ).padStart(2, "0")} ${String(now.getHours()).padStart(2, "0")}:${String(
-      now.getMinutes(),
-    ).padStart(2, "0")}`;
-  };
+  const submitOrder = async () => {
+    if (!activeCarId) {
+      setErrorMessage("Эхлээд тээврийн хэрэгслээ сонгоно уу.");
+      return;
+    }
 
-  const submitOrder = () => {
-    const activeCar = CAR_DATA.find((car) => car.id === activeCarId);
+    if (issueDescription.trim().length < 5) {
+      setErrorMessage("Тайлбар хамгийн багадаа 5 тэмдэгт байх ёстой.");
+      return;
+    }
 
-    const newOrder = {
-      id: `order-${Date.now()}`,
-      carName: activeCar?.name || "Сонгогдоогүй машин",
-      partName: selectedPart,
-      description: issueDescription.trim() || "Тайлбар оруулаагүй",
-      status: "pending",
-      createdAt: getCurrentDateTimeLabel(),
-      imageCount: damageImages.length,
-    };
+    const token = getAccessToken();
+    if (!token) {
+      router.push("/auth");
+      return;
+    }
 
-    setSubmittedOrders((prev) => [newOrder, ...prev]);
-    alert("Захиалга илгээгдлээ.");
-    setSelectedPart(null);
-    setDamageImages([]);
-    setIssueDescription("");
+    setSubmitting(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const response = await api.createRequest(token, {
+        vehicleId: activeCarId,
+        partId: selectedPartId || undefined,
+        description: issueDescription.trim(),
+        images: damageImages.map((image) => image.file),
+      });
+
+      const meta = response?.meta;
+      const uploaded = meta?.uploadedImages ?? 0;
+      const skipped =
+        (meta?.failedUploads ?? 0) + (meta?.oversizedSkipped ?? 0);
+
+      setSuccessMessage(
+        `Хүсэлт илгээгдлээ. Амжилттай зураг: ${uploaded}, алгассан зураг: ${skipped}.`,
+      );
+
+      damageImages.forEach((image) => URL.revokeObjectURL(image.url));
+      setDamageImages([]);
+      setIssueDescription("");
+      setSelectedPartId("");
+      await loadDashboardData();
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        clearSession();
+        router.push("/auth");
+        return;
+      }
+
+      if (error instanceof ApiError) {
+        setErrorMessage(error.message || "Хүсэлт илгээх үед алдаа гарлаа.");
+      } else {
+        setErrorMessage("Хүсэлт илгээх үед алдаа гарлаа.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 antialiased p-4 sm:p-8">
       <div className="max-w-3xl mx-auto space-y-5">
-        {/* Жолоочийн мэдээллийн хэсэг */}
-        <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-xs flex items-center gap-4">
-          <div className="w-12 h-12 bg-linear-to-tr from-slate-800 to-slate-950 text-white rounded-lg flex items-center justify-center font-bold text-base shadow-sm select-none shrink-0">
-            <span>{DRIVER_PROFILE.name.charAt(0).toUpperCase()}</span>
-          </div>
-          <div>
-            <h2 className="font-bold text-lg tracking-tight text-slate-900">
-              {DRIVER_PROFILE.name}
-            </h2>
-            <p className="text-xs font-medium text-slate-500 mt-0.5">
-              Жолооч • SAP ID:{" "}
-              <span className="font-mono text-slate-700">
-                #{DRIVER_PROFILE.sap}
-              </span>
-            </p>
-          </div>
-        </div>
+        <DashboardProfileCard
+          badge={profile?.firstName?.charAt(0)?.toUpperCase() || "D"}
+          name={profile ? `${profile.lastName} ${profile.firstName}` : "..."}
+          subtitle="Жолооч"
+          sapId={profile?.sapId || "-"}
+          totalLabel="Нийт хүсэлт"
+          totalValue={submittedOrders.length}
+        />
 
-        {/* Машин сонгох хэсэг */}
+        {loading && (
+          <div className="p-4 bg-white border border-slate-200 rounded-xl text-sm text-slate-500">
+            Өгөгдөл ачаалж байна...
+          </div>
+        )}
+
+        {errorMessage && (
+          <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700">
+            {errorMessage}
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700">
+            {successMessage}
+          </div>
+        )}
+
         <div className="space-y-4">
           <div className="border-b border-slate-200 pb-3">
             <h3 className="text-base font-bold text-slate-900">
@@ -153,7 +238,7 @@ export default function DriverDashboard() {
           </div>
 
           <div className="space-y-2.5">
-            {CAR_DATA.map((car) => (
+            {vehicles.map((car) => (
               <div
                 key={car.id}
                 className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs transition-all"
@@ -161,8 +246,8 @@ export default function DriverDashboard() {
                 <button
                   type="button"
                   onClick={() => {
-                    setActiveCarId(activeCarId === car.id ? null : car.id);
-                    setSelectedPart(null); // Өөр машин сонговол хуучин сэлбэгийг цэвэрлэнэ
+                    setActiveCarId(activeCarId === car.id ? "" : car.id);
+                    setSelectedPartId("");
                   }}
                   className="w-full text-left p-4 sm:p-5 font-medium flex justify-between items-center hover:bg-slate-50/50 active:bg-slate-50 transition"
                 >
@@ -184,37 +269,40 @@ export default function DriverDashboard() {
                     {car.parts.map((part) => (
                       <button
                         type="button"
-                        key={part}
-                        onClick={() => setSelectedPart(part)}
+                        key={part.id}
+                        onClick={() => setSelectedPartId(part.id)}
                         className={`p-3.5 text-xs rounded-xl border transition-all font-semibold text-left ${
-                          selectedPart === part
+                          selectedPartId === part.id
                             ? "border-slate-900 bg-slate-900 text-white shadow-sm"
                             : "border-slate-200 bg-white text-slate-700 hover:border-slate-400 active:bg-slate-50"
                         }`}
                       >
-                        {part}
+                        {part.name}
                       </button>
                     ))}
                   </div>
                 )}
               </div>
             ))}
+
+            {!loading && vehicles.length === 0 && (
+              <div className="p-4 bg-white border border-slate-200 rounded-xl text-sm text-slate-500">
+                Танд оноогдсон тээврийн хэрэгсэл алга.
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Хүсэлт үүсгэх форм (Сэлбэг сонгогдсон үед гарч ирнэ) */}
-        {selectedPart && (
+        {activeCar && (
           <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-md space-y-4 animate-in fade-in duration-200">
             <div>
               <h4 className="font-bold text-sm sm:text-base text-slate-900">
                 📌 Сонгосон:{" "}
-                <span className="text-amber-600">{selectedPart}</span>
+                <span className="text-amber-600">{activeCar.name}</span>
               </h4>
             </div>
 
-            {/* Гар утсанд зориулж flex-col, том дэлгэцэнд grid болгов */}
             <div className="flex flex-col gap-4">
-              {/* Зураг оруулах хэсэг */}
               <div className="space-y-2">
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
                   Эвдэрсэн хэсгийн зураг
@@ -267,7 +355,6 @@ export default function DriverDashboard() {
                 )}
               </div>
 
-              {/* Тайлбар бичих талбар */}
               <div className="space-y-2">
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
                   Эвдрэлийн тайлбар
@@ -282,12 +369,11 @@ export default function DriverDashboard() {
               </div>
             </div>
 
-            {/* Товчлуурууд - Гар утсан дээр бүтэн өргөн авах боломжтой */}
             <div className="flex gap-2 justify-end pt-3 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => {
-                  setSelectedPart(null);
+                  setSelectedPartId("");
                   setDamageImages([]);
                   setIssueDescription("");
                 }}
@@ -298,15 +384,15 @@ export default function DriverDashboard() {
               <button
                 type="button"
                 onClick={submitOrder}
+                disabled={submitting}
                 className="flex-1 sm:flex-none px-5 py-2.5 text-xs font-semibold bg-slate-900 text-white rounded-xl hover:bg-slate-800 active:scale-[0.99] transition shadow-sm"
               >
-                Хүсэлт илгээх
+                {submitting ? "Илгээж байна..." : "Хүсэлт илгээх"}
               </button>
             </div>
           </div>
         )}
 
-        {/* Илгээсэн захиалгуудын түүх */}
         <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-xs space-y-4">
           <div className="border-b border-slate-100 pb-2.5">
             <h3 className="text-base font-bold text-slate-900">
@@ -324,9 +410,6 @@ export default function DriverDashboard() {
           ) : (
             <div className="space-y-2.5">
               {submittedOrders.map((order) => {
-                const isApproved = order.status === "approved";
-                const isPending = order.status === "pending";
-
                 return (
                   <div
                     key={order.id}
@@ -335,32 +418,21 @@ export default function DriverDashboard() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="space-y-1">
                         <div className="text-xs sm:text-sm font-bold text-slate-900">
-                          {order.carName}{" "}
+                          {order.vehicle?.name || "-"}{" "}
                           <span className="text-slate-300 font-normal mx-1">
                             |
                           </span>{" "}
-                          {order.partName}
+                          {order.part?.name || "Ерөнхий хүсэлт"}
                         </div>
                         <div className="text-[10px] text-slate-400 font-mono">
-                          {order.createdAt}
+                          {formatDate(order.createdAt)}
                         </div>
                       </div>
 
-                      {/* Төлөв илэрхийлэх Badge */}
                       <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wide border shrink-0 ${
-                          isApproved
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            : isPending
-                              ? "bg-amber-50 text-amber-700 border-amber-200"
-                              : "bg-rose-50 text-rose-700 border-rose-200"
-                        }`}
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wide border shrink-0 ${statusClass(order.status)}`}
                       >
-                        {isApproved
-                          ? "Батлагдсан"
-                          : isPending
-                            ? "Хүлээгдэж буй"
-                            : "Цуцлагдсан"}
+                        {statusLabel(order.status)}
                       </span>
                     </div>
 
@@ -368,15 +440,14 @@ export default function DriverDashboard() {
                       {order.description}
                     </p>
 
-                    {typeof order.imageCount === "number" &&
-                      order.imageCount > 0 && (
-                        <div className="text-[11px] font-medium text-slate-400 flex items-center gap-1">
-                          📎 Хавсаргасан зураг:{" "}
-                          <span className="text-slate-700 font-semibold">
-                            {order.imageCount}
-                          </span>
-                        </div>
-                      )}
+                    {order.images?.length > 0 && (
+                      <div className="text-[11px] font-medium text-slate-400 flex items-center gap-1">
+                        📎 Хавсаргасан зураг:{" "}
+                        <span className="text-slate-700 font-semibold">
+                          {order.images?.length}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 );
               })}

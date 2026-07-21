@@ -66,7 +66,6 @@ export default function MerchAbout({ item, onOrder }) {
     <>
       <section className="mx-auto mt-4 w-full max-w-4xl bg-white p-6 md:p-10">
         <div className="flex flex-col gap-10 md:flex-row md:items-start">
-          {/* Бүтээгдэхүүний зураг */}
           <div className="relative aspect-square w-full shrink-0 overflow-hidden rounded-3xl bg-[#F8F9FA] p-8 sm:w-72 md:w-96">
             <Image
               src={item.imageUrl}
@@ -78,7 +77,6 @@ export default function MerchAbout({ item, onOrder }) {
             />
           </div>
 
-          {/* Бүтээгдэхүүний мэдээлэл */}
           <div className="flex-1 space-y-8">
             <div>
               <h1 className="text-2xl font-semibold tracking-tight text-neutral-900 md:text-3xl">
@@ -90,7 +88,6 @@ export default function MerchAbout({ item, onOrder }) {
             </div>
 
             <div className="space-y-5 border-t border-neutral-100 pt-6">
-              {/* Засвар орсон хэсэг: Хэмжээ сонгох (Гар утсан дээр үргэлж нэг мөрөнд) */}
               <div className="flex items-center gap-4 py-1">
                 <span className="text-xs font-semibold uppercase tracking-wider text-neutral-400 w-20 shrink-0">
                   Хэмжээ:
@@ -113,7 +110,6 @@ export default function MerchAbout({ item, onOrder }) {
                 </div>
               </div>
 
-              {/* Засвар орсон хэсэг: Өнгө сонгох (Гар утсан дээр үргэлж нэг мөрөнд) */}
               <div className="flex items-center gap-4 py-1">
                 <span className="text-xs font-semibold uppercase tracking-wider text-neutral-400 w-20 shrink-0">
                   Өнгө:
@@ -136,7 +132,6 @@ export default function MerchAbout({ item, onOrder }) {
                 </div>
               </div>
 
-              {/* Засвар орсон хэсэг: Тоо хэмжээ */}
               <div className="flex items-center gap-4 py-1">
                 <span className="text-xs font-semibold uppercase tracking-wider text-neutral-400 w-20 shrink-0">
                   Тоо:

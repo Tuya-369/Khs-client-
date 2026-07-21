@@ -2,17 +2,51 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { api, ApiError } from "@/lib/api";
+import { saveSession } from "@/lib/session";
 
 export default function LoginForm() {
+  const router = useRouter();
   const [loginData, setLoginData] = useState({
     sapId: "",
     password: "",
   });
+  const [errorMessage, setErrorMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setLoginData((prev) => ({ ...prev, [name]: value }));
   };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setErrorMessage("");
+
+    try {
+      const response = await api.login(loginData);
+      const accessToken = response?.data?.accessToken;
+      const user = response?.data?.user;
+
+      if (!accessToken || !user) {
+        throw new Error("Нэвтрэх үед буруу өгөгдөл ирлээ.");
+      }
+
+      saveSession(accessToken, user);
+      router.push("/");
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setErrorMessage(error.message || "Нэвтрэх үед алдаа гарлаа.");
+      } else {
+        setErrorMessage("Нэвтрэх үед алдаа гарлаа. Дахин оролдоно уу.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center p-4 sm:p-6 md:p-8">
       <div className="grid w-full max-w-4xl grid-cols-1 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-xl md:grid-cols-2">
@@ -45,7 +79,7 @@ export default function LoginForm() {
                 Нэвтрэх
               </h2>
             </div>
-            <form className="space-y-4">
+            <form className="space-y-4" onSubmit={handleSubmit}>
               <div>
                 <label className="block text-xs font-medium text-neutral-700 mb-1">
                   SAP Дугаар
@@ -101,10 +135,17 @@ export default function LoginForm() {
 
               <button
                 type="submit"
+                disabled={submitting}
                 className="w-full rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-yellow-400 hover:text-neutral-900 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all mt-2"
               >
-                Нэвтрэх
+                {submitting ? "Түр хүлээнэ үү..." : "Нэвтрэх"}
               </button>
+
+              {errorMessage && (
+                <p className="text-xs text-rose-600 font-medium">
+                  {errorMessage}
+                </p>
+              )}
             </form>
 
             <div className="text-center md:text-left text-xs text-neutral-500 pt-2 border-t border-neutral-100">

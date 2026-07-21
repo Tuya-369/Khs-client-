@@ -1,119 +1,153 @@
 "use client";
-import { useState } from "react";
-
-const INITIAL_ORDERS = [
-  {
-    id: "order-1",
-    driverName: "Лхамаа",
-    sapId: "202699",
-    carName: "Toyota Prius 30",
-    plate: "8888 УБА",
-    partName: "Тормосны наклад",
-    description: "Тоормос дуугараад, үрэлт ихтэй болсон.",
-    status: "approved",
-    isRead: true,
-    createdAt: "2026-07-19 14:20",
-  },
-  {
-    id: "order-2",
-    driverName: "Батаа",
-    sapId: "202611",
-    carName: "Hyundai Porter",
-    plate: "1111 УББ",
-    partName: "Агаарын шүүлтүүр",
-    description: "Хүч сулраад байгаа тул солих шаардлагатай.",
-    status: "pending", // Шинэ
-    isRead: false,
-    createdAt: "2026-07-20 09:15",
-  },
-  {
-    id: "order-3",
-    driverName: "Болд",
-    sapId: "202645",
-    carName: "Toyota Prius 30",
-    plate: "5555 УБХ",
-    partName: "Урд амортизатор",
-    description: "Баруун урд тал руугаа дуу ороод байна.",
-    status: "rejected", // Батлагдаагүй
-    isRead: true,
-    createdAt: "2026-07-20 10:30",
-  },
-];
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ApiError, api } from "@/lib/api";
+import { clearSession, getAccessToken } from "@/lib/session";
+import DashboardProfileCard from "@/Component/common/DashboardProfileCard";
 
 export default function AdminDashboard() {
-  const [orders, setOrders] = useState(INITIAL_ORDERS);
+  const router = useRouter();
+  const [profile, setProfile] = useState(null);
+  const [orders, setOrders] = useState([]);
   const [statusFilter, setStatusFilter] = useState("all");
   const [readFilter, setReadFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const handleUpdateStatus = (id, newStatus) => {
-    setOrders((prev) =>
-      prev.map((order) =>
-        order.id === id ? { ...order, status: newStatus, isRead: true } : order,
-      ),
-    );
+  const loadRequests = async (status = statusFilter, read = readFilter) => {
+    const token = getAccessToken();
+    if (!token) {
+      router.push("/auth");
+      return;
+    }
+
+    setLoading(true);
+    setErrorMessage("");
+
+    try {
+      const [meResponse, requestsResponse] = await Promise.all([
+        api.me(token),
+        api.getAdminRequests(token, {
+          status:
+            status === "pending"
+              ? "PENDING"
+              : status === "approved"
+                ? "APPROVED"
+                : status === "rejected"
+                  ? "REJECTED"
+                  : undefined,
+          isReadByAdmin:
+            read === "read" ? "true" : read === "unread" ? "false" : undefined,
+          page: 1,
+          limit: 100,
+        }),
+      ]);
+
+      setProfile(meResponse?.data?.user || null);
+      setOrders(requestsResponse?.data?.items || []);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        clearSession();
+        router.push("/auth");
+        return;
+      }
+
+      setErrorMessage("Хүсэлтийн жагсаалт татах үед алдаа гарлаа.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleMarkAsRead = (id) => {
-    setOrders((prev) =>
-      prev.map((order) =>
-        order.id === id ? { ...order, isRead: true } : order,
-      ),
-    );
+  useEffect(() => {
+    loadRequests(statusFilter, readFilter);
+  }, [statusFilter, readFilter]);
+
+  const handleUpdateStatus = async (id, newStatus) => {
+    const token = getAccessToken();
+    if (!token) {
+      router.push("/auth");
+      return;
+    }
+
+    try {
+      await api.updateRequestStatus(token, id, newStatus.toUpperCase());
+      await loadRequests(statusFilter, readFilter);
+    } catch (error) {
+      setErrorMessage("Төлөв шинэчлэх үед алдаа гарлаа.");
+    }
+  };
+
+  const handleMarkAsRead = async (id) => {
+    const target = orders.find((order) => order.id === id);
+    if (!target || target.isReadByAdmin) {
+      return;
+    }
+
+    const token = getAccessToken();
+    if (!token) {
+      router.push("/auth");
+      return;
+    }
+
+    try {
+      await api.markRequestRead(token, id);
+      await loadRequests(statusFilter, readFilter);
+    } catch {
+      setErrorMessage("Уншсан төлөвт оруулах үед алдаа гарлаа.");
+    }
   };
 
   const getCount = (type, value) => {
     if (type === "status") {
       if (value === "all") return orders.length;
-      return orders.filter((o) => o.status === value).length;
+      return orders.filter((o) => o.status === value.toUpperCase()).length;
     }
     if (type === "read") {
-      if (value === "read") return orders.filter((o) => o.isRead).length;
-      if (value === "unread") return orders.filter((o) => !o.isRead).length;
+      if (value === "read") return orders.filter((o) => o.isReadByAdmin).length;
+      if (value === "unread")
+        return orders.filter((o) => !o.isReadByAdmin).length;
     }
     return 0;
   };
 
-  const filteredOrders = orders.filter((order) => {
-    const matchStatus = statusFilter === "all" || order.status === statusFilter;
-    const matchRead =
-      readFilter === "all" ||
-      (readFilter === "read" && order.isRead) ||
-      (readFilter === "unread" && !order.isRead);
-    return matchStatus && matchRead;
-  });
+  const filteredOrders = useMemo(() => orders, [orders]);
+
+  const formatDate = (value) => {
+    if (!value) return "";
+    return new Date(value).toLocaleString("mn-MN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-800 antialiased p-4 sm:p-8">
       <div className="max-w-3xl mx-auto space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between p-5 sm:p-6 bg-white border border-slate-200 rounded-xl shadow-xs gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-linear-to-tr from-amber-500 to-amber-600 text-white rounded-xl flex items-center justify-center font-bold text-base tracking-wider shadow-sm shrink-0 select-none">
-              ADM
-            </div>
-            <div>
-              <h2 className="font-bold text-lg sm:text-xl tracking-tight text-slate-900">
-                Чимэд
-              </h2>
-              <div className="flex flex-wrap items-center gap-x-2 text-xs text-slate-500 mt-0.5">
-                <span className="font-medium text-slate-700">
-                  Захиалгын манжер
-                </span>
-                <span className="text-slate-300">•</span>
-                <span>SAP ID: 202699</span>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center pt-2 sm:pt-0 border-t border-slate-100 sm:border-none">
-            <span className="text-xs font-semibold px-3 py-1.5 bg-slate-50 text-slate-600 border border-slate-200 rounded-lg w-full text-center sm:w-auto">
-              Нийт хүсэлт:{" "}
-              <span className="text-slate-900 font-bold">{orders.length}</span>
-            </span>
-          </div>
-        </div>
+        <DashboardProfileCard
+          badge="A"
+          name={profile ? `${profile.lastName} ${profile.firstName}` : "..."}
+          subtitle="Захиалгын менежер"
+          sapId={profile?.sapId || "-"}
+          totalLabel="Нийт хүсэлт"
+          totalValue={orders.length}
+        />
 
-        {/* ШҮҮЛТҮҮРИЙН ХЭСЭГ (Бүгд, Шинэ, Батлагдсан, Батлагдаагүй, Уншсан, Unread) */}
+        {loading && (
+          <div className="p-4 bg-white border border-slate-200 rounded-xl text-sm text-slate-500">
+            Хүсэлтүүд ачаалж байна...
+          </div>
+        )}
+
+        {errorMessage && (
+          <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-sm text-rose-700">
+            {errorMessage}
+          </div>
+        )}
+
         <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-xs space-y-4">
-          {/* 1. Захиалгын төлөв шүүлтүүр */}
           <div className="space-y-2">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
               Захиалгын төлөв
@@ -188,11 +222,8 @@ export default function AdminDashboard() {
               </button>
             </div>
           </div>
-
-          {/* 2. Харагдсан эсэхээр шүүх */}
         </div>
 
-        {/* ХҮСЭЛТҮҮДИЙН ЖАГСААЛТ */}
         <div className="space-y-3">
           <div className="flex justify-between items-center px-1">
             <span className="text-xs font-bold text-blue-500">
@@ -206,40 +237,41 @@ export default function AdminDashboard() {
             </div>
           ) : (
             filteredOrders.map((order) => {
-              const isPending = order.status === "pending";
-              const isApproved = order.status === "approved";
-              const isRejected = order.status === "rejected";
+              const isApproved = order.status === "APPROVED";
+              const isRejected = order.status === "REJECTED";
+              const isPendingNow = order.status === "PENDING";
 
               return (
                 <div
                   key={order.id}
                   onClick={() => handleMarkAsRead(order.id)}
                   className={`bg-white border rounded-xl p-4 sm:p-5 shadow-xs space-y-4 transition-all relative cursor-pointer ${
-                    !order.isRead
+                    !order.isReadByAdmin
                       ? "border-amber-400 ring-1 ring-amber-50/50"
                       : "border-slate-200"
                   }`}
                 >
-                  {/* Уншаагүй үед харагдах жижиг цэг */}
-                  {!order.isRead && (
+                  {!order.isReadByAdmin && (
                     <span className="absolute top-4 left-4 w-2 h-2 bg-amber-500 rounded-full" />
                   )}
 
                   <div
-                    className={`flex justify-between items-start gap-4 ${!order.isRead ? "pl-4" : ""}`}
+                    className={`flex justify-between items-start gap-4 ${!order.isReadByAdmin ? "pl-4" : ""}`}
                   >
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-bold text-slate-900 text-sm sm:text-base">
-                          {order.driverName}
+                          {order.driver?.lastName} {order.driver?.firstName}
                         </h3>
                         <span className="text-[10px] font-mono font-semibold text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
-                          #{order.sapId}
+                          #{order.driver?.sapId}
                         </span>
                       </div>
                       <p className="text-xs text-slate-500 mt-1 font-medium">
-                        {order.carName} •{" "}
-                        <span className="font-mono">{order.plate}</span>
+                        {order.vehicle?.name} •{" "}
+                        <span className="font-mono">
+                          {order.vehicle?.plate}
+                        </span>
                       </p>
                     </div>
 
@@ -247,14 +279,14 @@ export default function AdminDashboard() {
                       className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase border shrink-0 ${
                         isApproved
                           ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                          : isPending
+                          : isPendingNow
                             ? "bg-blue-50 text-blue-700 border-blue-200"
                             : "bg-rose-50 text-rose-700 border-rose-200"
                       }`}
                     >
                       {isApproved
                         ? "Батлагдсан"
-                        : isPending
+                        : isPendingNow
                           ? "Шинэ"
                           : "Батлагдаагүй"}
                     </span>
@@ -263,7 +295,9 @@ export default function AdminDashboard() {
                   <div className="bg-slate-50/70 rounded-xl p-3 border border-slate-100 space-y-2">
                     <div className="text-xs font-bold text-slate-900">
                       Сэлбэг:{" "}
-                      <span className="text-blue-600">{order.partName}</span>
+                      <span className="text-blue-600">
+                        {order.part?.name || "Ерөнхий"}
+                      </span>
                     </div>
                     <p className="text-xs text-slate-600 leading-relaxed font-normal">
                       {order.description}
@@ -272,16 +306,16 @@ export default function AdminDashboard() {
 
                   <div className="flex justify-between items-center gap-4 pt-2 border-t border-slate-100 flex-wrap">
                     <span className="text-[10px] font-mono text-slate-400">
-                      Илгээсэн: {order.createdAt}
+                      Илгээсэн: {formatDate(order.createdAt)}
                     </span>
 
-                    {isPending && (
+                    {isPendingNow && (
                       <div className="flex gap-1.5 ml-auto w-full sm:w-auto">
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleUpdateStatus(order.id, "rejected");
+                            handleUpdateStatus(order.id, "REJECTED");
                           }}
                           className="flex-1 sm:flex-none px-3 py-1.5 text-xs font-semibold border border-rose-200 bg-rose-50/30 text-rose-600 rounded-lg hover:bg-rose-50 active:bg-rose-100 transition"
                         >
@@ -291,7 +325,7 @@ export default function AdminDashboard() {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleUpdateStatus(order.id, "approved");
+                            handleUpdateStatus(order.id, "APPROVED");
                           }}
                           className="flex-1 sm:flex-none px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 active:scale-95 transition shadow-xs"
                         >

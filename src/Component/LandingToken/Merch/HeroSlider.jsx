@@ -1,50 +1,66 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-const SLIDES = [
-  {
-    id: 1,
-    image:
-      "https://res.cloudinary.com/hfroefns/image/upload/v1782977695/Screenshot_2026-07-02_153432_zfclpa.png",
-    title: "",
-    subtitle: "",
-  },
-  {
-    id: 2,
-    image:
-      "https://res.cloudinary.com/hfroefns/image/upload/v1782977695/Screenshot_2026-07-02_153432_zfclpa.png",
-    title: "",
-    subtitle: "",
-  },
-  {
-    id: 3,
-    image:
-      "https://res.cloudinary.com/hfroefns/image/upload/v1782977695/Screenshot_2026-07-02_153432_zfclpa.png",
-    title: "",
-    subtitle: "",
-  },
-];
+import { api } from "@/lib/api";
 
 export default function HeroSlider() {
+  const [slides, setSlides] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [touchStartX, setTouchStartX] = useState(null);
 
-  const goToPrevious = () => {
-    setCurrentIndex((prev) => (prev === 0 ? SLIDES.length - 1 : prev - 1));
-  };
+  const goToPrevious = useCallback(() => {
+    setCurrentIndex((prev) =>
+      prev === 0 ? Math.max(slides.length - 1, 0) : prev - 1,
+    );
+  }, [slides.length]);
 
-  const goToNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % SLIDES.length);
-  };
+  const goToNext = useCallback(() => {
+    if (slides.length === 0) return;
+    setCurrentIndex((prev) => (prev + 1) % slides.length);
+  }, [slides.length]);
 
   useEffect(() => {
+    let isMounted = true;
+
+    const loadSlides = async () => {
+      try {
+        const response = await api.getMerchItems();
+        const items = Array.isArray(response?.data) ? response.data : [];
+        const mappedSlides = items.slice(0, 6).map((item) => ({
+          id: item.id,
+          image: item.imageUrl,
+          title: item.title,
+          subtitle: item.description || "",
+        }));
+
+        if (!isMounted) return;
+        setSlides(mappedSlides);
+      } catch {
+        if (!isMounted) return;
+        setSlides([]);
+      }
+    };
+
+    loadSlides();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (slides.length === 0) return;
     const timer = setInterval(() => {
       goToNext();
     }, 20000);
     return () => clearInterval(timer);
-  }, []);
+  }, [slides.length, goToNext]);
+
+  if (slides.length === 0) {
+    return null;
+  }
 
   const handleTouchStart = (event) => {
     setTouchStartX(event.touches[0]?.clientX ?? null);
@@ -83,8 +99,8 @@ export default function HeroSlider() {
             className="relative flex h-full w-full items-end"
           >
             <Image
-              src={SLIDES[currentIndex].image}
-              alt={SLIDES[currentIndex].title || "Merch banner"}
+              src={slides[currentIndex].image}
+              alt={slides[currentIndex].title || "Merch banner"}
               fill
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 92vw, 1200px"
               className="absolute inset-0 h-full w-full select-none object-cover"
@@ -100,7 +116,7 @@ export default function HeroSlider() {
                 transition={{ delay: 0.2, duration: 0.5 }}
                 className="text-2xl font-black leading-tight tracking-tight sm:text-3xl md:text-4xl lg:text-5xl"
               >
-                {SLIDES[currentIndex].title}
+                {slides[currentIndex].title}
               </motion.h1>
               <motion.p
                 initial={{ y: 15, opacity: 0 }}
@@ -108,7 +124,7 @@ export default function HeroSlider() {
                 transition={{ delay: 0.3, duration: 0.5 }}
                 className="mt-2 max-w-xl text-sm font-light text-neutral-200 sm:text-base md:text-lg"
               >
-                {SLIDES[currentIndex].subtitle}
+                {slides[currentIndex].subtitle}
               </motion.p>
 
               <motion.div
@@ -130,7 +146,7 @@ export default function HeroSlider() {
         </AnimatePresence>
 
         <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 gap-2 sm:bottom-6">
-          {SLIDES.map((_, index) => (
+          {slides.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentIndex(index)}

@@ -1,14 +1,41 @@
 "use client";
+
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { merchItems } from "@/Component/LandingToken/Merch/merchItems";
+import { api } from "@/lib/api";
 
 export default function MerchCard({
   hideTopTexts = false,
   excludeItemId,
   embedded = false,
 }) {
-  const visibleItems = merchItems.filter((item) => item.id !== excludeItemId);
+  const [items, setItems] = useState([]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadItems = async () => {
+      try {
+        const response = await api.getMerchItems();
+        if (!isMounted) return;
+        setItems(Array.isArray(response?.data) ? response.data : []);
+      } catch {
+        if (!isMounted) return;
+        setItems([]);
+      }
+    };
+
+    loadItems();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const visibleItems = useMemo(() => {
+    return items.filter((item) => item.id !== excludeItemId);
+  }, [items, excludeItemId]);
 
   const sectionClassName = embedded
     ? "w-full px-0 py-0 text-neutral-800"
@@ -81,10 +108,14 @@ export default function MerchCard({
 
                 <div className="mt-auto pt-3 flex flex-nowrap items-center gap-1.5 text-[11px] text-neutral-500 w-full overflow-hidden">
                   <span className="bg-neutral-100 px-2 py-0.5 rounded-sm whitespace-nowrap shrink-0">
-                    {item.size}
+                    {Array.isArray(item.sizes) && item.sizes.length > 0
+                      ? item.sizes.join(", ")
+                      : "Free size"}
                   </span>
                   <span className="bg-neutral-100 px-2 py-0.5 rounded-sm whitespace-nowrap truncate min-w-0">
-                    {item.color}
+                    {Array.isArray(item.colors) && item.colors.length > 0
+                      ? item.colors.join(" / ")
+                      : "-"}
                   </span>
                 </div>
               </div>
@@ -96,7 +127,9 @@ export default function MerchCard({
                   Үнэ
                 </span>
                 <span className="text-base font-bold text-neutral-900">
-                  {item.cost}
+                  {typeof item.price === "number"
+                    ? `${item.price.toLocaleString("mn-MN")}₮`
+                    : "-"}
                 </span>
               </div>
             </div>

@@ -56,10 +56,17 @@ const apiRequest = async (path, options = {}) => {
     : await response.text();
 
   if (!response.ok) {
+    const readableText =
+      typeof payload === "string"
+        ? payload.match(/<pre>(.*?)<\/pre>/is)?.[1]?.trim() || payload.trim()
+        : "";
+
     let message =
       typeof payload === "object" && payload?.message
         ? payload.message
-        : "Сервертэй холбогдоход алдаа гарлаа.";
+        : readableText
+          ? readableText
+          : "Сервертэй холбогдоход алдаа гарлаа.";
 
     if (
       typeof message === "string" &&
@@ -83,8 +90,71 @@ export const api = {
   register: (body) =>
     apiRequest("/api/auth/register", { method: "POST", body }),
   login: (body) => apiRequest("/api/auth/login", { method: "POST", body }),
+  verifyOtp: (body) =>
+    apiRequest("/api/auth/verify-otp", { method: "POST", body }),
+  getMerchItems: () => apiRequest("/api/merch"),
+  getMerchById: (id) => apiRequest(`/api/merch/${id}`),
   me: (token) => apiRequest("/api/auth/me", { token }),
   logout: (token) => apiRequest("/api/auth/logout", { method: "POST", token }),
+  updateProfile: async (token, body) => {
+    const endpointAttempts = [
+      { path: "/api/auth/me", method: "PATCH" },
+      { path: "/api/users/me", method: "PATCH" },
+      { path: "/api/users/profile", method: "PATCH" },
+      { path: "/api/auth/profile", method: "PATCH" },
+      { path: "/api/auth/me", method: "PUT" },
+      { path: "/api/users/me", method: "PUT" },
+      { path: "/api/auth/profile", method: "PUT" },
+    ];
+
+    const payloadAttempts = [
+      body,
+      {
+        ...body,
+        avatarUrl: body?.profileImage || body?.avatarUrl || "",
+      },
+      {
+        user: {
+          ...body,
+          avatarUrl: body?.profileImage || body?.avatarUrl || "",
+        },
+      },
+    ];
+
+    let lastError = null;
+
+    for (const attempt of endpointAttempts) {
+      for (const requestBody of payloadAttempts) {
+        try {
+          return await apiRequest(attempt.path, {
+            method: attempt.method,
+            token,
+            body: requestBody,
+          });
+        } catch (error) {
+          if (
+            error instanceof ApiError &&
+            (error.status === 400 ||
+              error.status === 404 ||
+              error.status === 405 ||
+              error.status === 422)
+          ) {
+            lastError = error;
+            continue;
+          }
+
+          throw error;
+        }
+      }
+    }
+
+    throw (
+      lastError ||
+      new ApiError(
+        "Профайл шинэчлэх endpoint олдсонгүй. Backend дээр /api/auth/me эсвэл /api/users/me update route-ээ шалгана уу.",
+      )
+    );
+  },
 
   getDriverOptions: (token) => apiRequest("/api/requests/options", { token }),
   getMyRequests: (token) => apiRequest("/api/requests/my", { token }),

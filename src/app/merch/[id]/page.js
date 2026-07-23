@@ -1,11 +1,25 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import MerchAbout from "@/Component/LandingToken/Merch/MerchAbout";
-import { getMerchById } from "@/Component/LandingToken/Merch/merchItems";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+const getMerchById = async (id) => {
+  const response = await fetch(`${API_BASE_URL}/api/merch/${id}`, {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const payload = await response.json();
+  return payload?.data || null;
+};
 
 export default async function MerchDetailPage({ params }) {
   const resolvedParams = await params;
-  const item = getMerchById(resolvedParams?.id);
+  const item = await getMerchById(resolvedParams?.id);
 
   if (!item) {
     notFound();

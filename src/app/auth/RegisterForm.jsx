@@ -45,7 +45,7 @@ export default function RegisterForm() {
     setIsNoSapChecked(checked);
     setFormData((prev) => ({
       ...prev,
-      sapId: checked ? "1216" : "",
+      sapId: "",
     }));
   };
 

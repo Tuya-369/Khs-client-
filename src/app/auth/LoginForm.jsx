@@ -12,24 +12,12 @@ export default function LoginForm() {
     sapId: "",
     password: "",
   });
-  const [otpData, setOtpData] = useState({
-    code: "",
-    otpToken: "",
-    phone: "",
-  });
-  const [awaitingOtp, setAwaitingOtp] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [infoMessage, setInfoMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setLoginData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleOtpChange = (e) => {
-    const numbersOnly = e.target.value.replace(/\D/g, "").slice(0, 6);
-    setOtpData((prev) => ({ ...prev, code: numbersOnly }));
   };
 
   const handleSubmit = async (e) => {
@@ -39,48 +27,11 @@ export default function LoginForm() {
 
     try {
       const response = await api.login(loginData);
-      const requiresOtp = response?.data?.requiresOtp;
-      const otpToken = response?.data?.otpToken;
-
-      if (requiresOtp && otpToken) {
-        setAwaitingOtp(true);
-        setOtpData({
-          code: "",
-          otpToken,
-          phone: response?.data?.phone || "",
-        });
-        setInfoMessage(response?.data?.message || "OTP код утсанд илгээгдлээ.");
-        return;
-      }
-
-      throw new Error("OTP баталгаажуулалт эхлүүлэхэд алдаа гарлаа.");
-    } catch (error) {
-      if (error instanceof ApiError) {
-        setErrorMessage(error.message);
-      } else {
-        setErrorMessage("Нэвтрэх үед алдаа гарлаа. Дахин оролдоно уу.");
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleVerifyOtp = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setErrorMessage("");
-
-    try {
-      const response = await api.verifyOtp({
-        otpToken: otpData.otpToken,
-        code: otpData.code,
-      });
-
       const accessToken = response?.data?.accessToken;
       const user = response?.data?.user;
 
       if (!accessToken || !user) {
-        throw new Error("OTP баталгаажуулалтын дараах өгөгдөл буруу байна.");
+        throw new Error("Нэвтрэлтийн дараах өгөгдөл буруу байна.");
       }
 
       saveSession(accessToken, user);
@@ -89,9 +40,7 @@ export default function LoginForm() {
       if (error instanceof ApiError) {
         setErrorMessage(error.message);
       } else {
-        setErrorMessage(
-          "OTP баталгаажуулах үед алдаа гарлаа. Дахин оролдоно уу.",
-        );
+        setErrorMessage("Нэвтрэх үед алдаа гарлаа. Дахин оролдоно уу.");
       }
     } finally {
       setSubmitting(false);
@@ -130,7 +79,7 @@ export default function LoginForm() {
                 Нэвтрэх
               </h2>
             </div>
-            {!awaitingOtp ? (
+            {
               <form className="space-y-4" onSubmit={handleSubmit}>
                 <div>
                   <label className="block text-xs font-medium text-neutral-700 mb-1">
@@ -178,50 +127,7 @@ export default function LoginForm() {
                   {submitting ? "Түр хүлээнэ үү..." : "Нэвтрэх"}
                 </button>
               </form>
-            ) : (
-              <form className="space-y-4" onSubmit={handleVerifyOtp}>
-                <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs text-yellow-800">
-                  {infoMessage || "OTP код илгээгдлээ."}
-                  {otpData.phone ? ` (${otpData.phone})` : ""}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-neutral-700 mb-1">
-                    OTP код
-                  </label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    required
-                    value={otpData.code}
-                    onChange={handleOtpChange}
-                    placeholder="6 оронтой код"
-                    className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 focus:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-400/40 transition-all"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={submitting || otpData.code.length !== 6}
-                  className="w-full rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-yellow-400 hover:text-neutral-900 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all mt-2 disabled:opacity-60"
-                >
-                  {submitting ? "Шалгаж байна..." : "Код баталгаажуулах"}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAwaitingOtp(false);
-                    setOtpData({ code: "", otpToken: "", phone: "" });
-                    setInfoMessage("");
-                  }}
-                  className="w-full rounded-lg border border-neutral-300 px-4 py-2.5 text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-all"
-                >
-                  Буцах
-                </button>
-              </form>
-            )}
+            }
 
             {errorMessage && (
               <p className="text-xs text-rose-600 font-medium">

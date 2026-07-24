@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import Image from "next/image";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/session";
 import {
@@ -323,6 +324,12 @@ export default function AdminDashboard({ currentUser }) {
                 <span className="font-semibold text-slate-900">SAP:</span>{" "}
                 {getRequesterSap(selectedItem, role, currentUser)}
               </p>
+              {role === "TOKEN_MANAGER" && (
+                <p>
+                  <span className="font-semibold text-slate-900">Утас:</span>{" "}
+                  {selectedItem?.user?.phoneNumber || "-"}
+                </p>
+              )}
               <p>
                 <span className="font-semibold text-slate-900">Огноо:</span>{" "}
                 {formatDate(getItemDate(selectedItem, role))}
@@ -333,6 +340,22 @@ export default function AdminDashboard({ currentUser }) {
               </p>
               {role === "TOKEN_MANAGER" ? (
                 <>
+                  <div className="relative h-36 w-36 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                    {selectedItem?.merchItem?.imageUrl ? (
+                      <Image
+                        src={selectedItem.merchItem.imageUrl}
+                        alt={selectedItem.merchItem.title || "Merch"}
+                        fill
+                        sizes="144px"
+                        unoptimized
+                        className="object-contain"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-[10px] text-slate-400">
+                        Зураггүй
+                      </div>
+                    )}
+                  </div>
                   <p>
                     <span className="font-semibold text-slate-900">Бараа:</span>{" "}
                     {selectedItem?.merchItem?.title || "-"}

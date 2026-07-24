@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError, api } from "@/lib/api";
 import { clearSession, getAccessToken } from "@/lib/session";
@@ -22,40 +22,47 @@ export default function TokenDashboard() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const loadOrders = async (filter = activeFilter) => {
-    const token = getAccessToken();
-    if (!token) {
-      router.push("/auth");
-      return;
-    }
-
-    setLoading(true);
-    setErrorMessage("");
-
-    try {
-      const [meResponse, ordersResponse] = await Promise.all([
-        api.me(token),
-        api.getManagerOrders(token, filter),
-      ]);
-
-      setProfile(meResponse?.data?.user || null);
-      setOrders(ordersResponse?.data || []);
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        clearSession();
+  const loadOrders = useCallback(
+    async (filter = activeFilter) => {
+      const token = getAccessToken();
+      if (!token) {
         router.push("/auth");
         return;
       }
 
-      setErrorMessage("Merch захиалга татах үед алдаа гарлаа.");
-    } finally {
-      setLoading(false);
-    }
-  };
+      setLoading(true);
+      setErrorMessage("");
+
+      try {
+        const [meResponse, ordersResponse] = await Promise.all([
+          api.me(token),
+          api.getManagerOrders(token, filter),
+        ]);
+
+        setProfile(meResponse?.data?.user || null);
+        setOrders(ordersResponse?.data || []);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 401) {
+          clearSession();
+          router.push("/auth");
+          return;
+        }
+
+        setErrorMessage("Merch захиалга татах үед алдаа гарлаа.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [activeFilter, router],
+  );
 
   useEffect(() => {
-    loadOrders(activeFilter);
-  }, [activeFilter]);
+    const loadTimer = window.setTimeout(() => {
+      void loadOrders(activeFilter);
+    }, 0);
+
+    return () => window.clearTimeout(loadTimer);
+  }, [activeFilter, loadOrders]);
 
   const filteredOrders = useMemo(() => {
     return orders;
@@ -175,6 +182,7 @@ export default function TokenDashboard() {
                           alt={order.merchItem.title}
                           fill
                           sizes="64px"
+                          unoptimized
                           className="object-cover"
                         />
                       ) : (
@@ -190,6 +198,9 @@ export default function TokenDashboard() {
                       <p className="text-xs text-gray-500 mt-0.5">
                         {order?.user?.lastName} {order?.user?.firstName} • SAP{" "}
                         {order?.user?.sapId}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Утас: {order?.user?.phoneNumber || "-"}
                       </p>
                     </div>
                   </div>

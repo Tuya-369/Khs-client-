@@ -4,26 +4,31 @@ import { useState } from "react";
 import Image from "next/image";
 import MerchCard from "./MerchCard";
 import { useCart } from "@/context/CartContext";
+import { ApiError, api } from "@/lib/api";
+import { getAccessToken } from "@/lib/session";
 
 export default function MerchAbout({ item, onOrder }) {
-  if (!item) return null;
   const { addToCart } = useCart();
 
-  const sizeOptions = Array.isArray(item.sizes)
+  const sizeOptions = Array.isArray(item?.sizes)
     ? item.sizes
-    : item.size
+    : item?.size
       ? [item.size]
-      : ["M", "L", "XL"];
+      : [];
 
-  const colorOptions = Array.isArray(item.colors)
+  const colorOptions = Array.isArray(item?.colors)
     ? item.colors
-    : item.color
+    : item?.color
       ? [item.color]
-      : ["Cream", "Charcoal"];
+      : [];
 
   const [selectedSize, setSelectedSize] = useState(sizeOptions[0] || "");
   const [selectedColor, setSelectedColor] = useState(colorOptions[0] || "");
   const [quantity, setQuantity] = useState(1);
+  const [isOrdering, setIsOrdering] = useState(false);
+  const [orderMessage, setOrderMessage] = useState("");
+
+  if (!item) return null;
 
   const decreaseQty = () => {
     setQuantity((prev) => Math.max(1, prev - 1));
@@ -33,7 +38,7 @@ export default function MerchAbout({ item, onOrder }) {
     setQuantity((prev) => Math.min(20, prev + 1));
   };
 
-  const handleOrder = () => {
+  const handleOrder = async () => {
     const orderData = {
       id: item.id,
       title: item.title,
@@ -44,10 +49,34 @@ export default function MerchAbout({ item, onOrder }) {
 
     if (onOrder) {
       onOrder(orderData);
-    } else {
-      alert(
-        `Захиалга: ${item.title} \nХэмжээ: ${selectedSize} \nӨнгө: ${selectedColor} \nТоо: ${quantity}`,
+      return;
+    }
+
+    const token = getAccessToken();
+    if (!token) {
+      setOrderMessage("Захиалга хийхийн тулд эхлээд нэвтэрнэ үү.");
+      return;
+    }
+
+    setIsOrdering(true);
+    setOrderMessage("");
+
+    try {
+      await api.createMerchOrder(token, {
+        merchItemId: item.id,
+        size: selectedSize,
+        color: selectedColor,
+        qty: quantity,
+      });
+      setOrderMessage("Захиалга амжилттай илгээгдлээ.");
+    } catch (error) {
+      setOrderMessage(
+        error instanceof ApiError
+          ? error.message
+          : "Захиалга илгээх үед алдаа гарлаа.",
       );
+    } finally {
+      setIsOrdering(false);
     }
   };
 
@@ -58,7 +87,7 @@ export default function MerchAbout({ item, onOrder }) {
       imageUrl: item.imageUrl,
       size: selectedSize,
       color: selectedColor,
-      price: 59000,
+      price: item.price,
     });
   };
 
@@ -73,6 +102,7 @@ export default function MerchAbout({ item, onOrder }) {
               width={450}
               height={450}
               sizes="(max-width: 768px) 100vw, 384px"
+              unoptimized
               className="h-full w-full object-contain mix-blend-multiply transition-transform duration-700 hover:scale-103"
             />
           </div>
@@ -172,11 +202,15 @@ export default function MerchAbout({ item, onOrder }) {
               <button
                 type="button"
                 onClick={handleOrder}
-                className="flex-1 h-12 rounded-full bg-neutral-950 text-sm font-medium text-white transition-all duration-300 hover:bg-neutral-800 active:scale-[0.99] cursor-pointer shadow-sm"
+                disabled={isOrdering}
+                className="flex-1 h-12 rounded-full bg-neutral-950 text-sm font-medium text-white transition-all duration-300 hover:bg-neutral-800 active:scale-[0.99] cursor-pointer shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Захиалах ({quantity})
+                {isOrdering ? "Илгээж байна..." : `Захиалах (${quantity})`}
               </button>
             </div>
+            {orderMessage && (
+              <p className="text-sm text-neutral-600">{orderMessage}</p>
+            )}
           </div>
         </div>
       </section>

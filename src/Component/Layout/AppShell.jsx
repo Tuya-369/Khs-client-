@@ -60,7 +60,8 @@ export default function AppShell({ children }) {
       return;
     }
 
-    setChecked(true);
+    const checkedTimer = window.setTimeout(() => setChecked(true), 0);
+    return () => window.clearTimeout(checkedTimer);
   }, [normalizedPathname, router]);
 
   if (

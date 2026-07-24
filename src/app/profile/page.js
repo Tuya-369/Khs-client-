@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ApiError, api } from "@/lib/api";
 import { clearSession, getAccessToken, saveSession } from "@/lib/session";
@@ -186,12 +187,14 @@ export default function ProfilePage() {
             className="relative group cursor-pointer shrink-0"
             onClick={() => avatarInputRef.current?.click()}
           >
-            <div className="w-16 h-16 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden">
+            <div className="relative w-16 h-16 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden">
               {form.profileImage ? (
-                <img
+                <Image
                   src={form.profileImage}
                   alt="Profile"
-                  className="w-full h-full object-cover"
+                  fill
+                  unoptimized
+                  className="object-cover"
                 />
               ) : (
                 <span className="text-sm font-bold text-slate-500">
@@ -211,15 +214,14 @@ export default function ProfilePage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <h1 className="text-base font-bold text-slate-900">{`${user?.lastName || ""} ${user?.firstName || ""}`}</h1>
-                <p className="text-xs text-slate-400 font-medium">
+                <p className="text-xs text-red-400 font-medium">
                   {user?.role === "ADMIN"
-                    ? "Администратор"
+                    ? "Админ"
                     : user?.role === "TOKEN_MANAGER"
                       ? "Токен менежер"
                       : user?.role === "DRIVER"
                         ? "Жолооч"
                         : "Ажилтан"}
-                  l
                 </p>
               </div>
               <button

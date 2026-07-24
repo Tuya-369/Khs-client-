@@ -28,12 +28,15 @@ export default function HeroSlider() {
       try {
         const response = await api.getMerchItems();
         const items = Array.isArray(response?.data) ? response.data : [];
-        const mappedSlides = items.slice(0, 6).map((item) => ({
-          id: item.id,
-          image: item.imageUrl,
-          title: item.title,
-          subtitle: item.description || "",
-        }));
+        const mappedSlides = items
+          .filter((item) => typeof item.imageUrl === "string" && item.imageUrl)
+          .slice(0, 6)
+          .map((item) => ({
+            id: item.id,
+            image: item.imageUrl,
+            title: item.title,
+            subtitle: item.description || "",
+          }));
 
         if (!isMounted) return;
         setSlides(mappedSlides);
@@ -61,6 +64,8 @@ export default function HeroSlider() {
   if (slides.length === 0) {
     return null;
   }
+
+  const activeSlide = slides[currentIndex] || slides[0];
 
   const handleTouchStart = (event) => {
     setTouchStartX(event.touches[0]?.clientX ?? null);
@@ -91,7 +96,7 @@ export default function HeroSlider() {
       >
         <AnimatePresence mode="wait">
           <motion.div
-            key={currentIndex}
+            key={activeSlide.id}
             initial={{ opacity: 0, scale: 1.02 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
@@ -99,10 +104,11 @@ export default function HeroSlider() {
             className="relative flex h-full w-full items-end"
           >
             <Image
-              src={slides[currentIndex].image}
-              alt={slides[currentIndex].title || "Merch banner"}
+              src={activeSlide.image}
+              alt={activeSlide.title || "Merch banner"}
               fill
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 92vw, 1200px"
+              unoptimized
               className="absolute inset-0 h-full w-full select-none object-cover"
               priority={currentIndex === 0}
             />
@@ -136,10 +142,6 @@ export default function HeroSlider() {
                 <button className="rounded-xl bg-linear-to-r from-amber-500 to-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/20 transition-all duration-200 hover:scale-105 active:scale-95 sm:px-6 sm:py-3">
                   Дэлгэрэнгүй үзэх
                 </button>
-                <p className="max-w-sm text-xs leading-relaxed text-neutral-100 sm:text-sm">
-                  Оюут хоолны газраас <br /> KHS-токенаар амтат хоол худалдан
-                  авах боломжтой.
-                </p>
               </motion.div>
             </div>
           </motion.div>

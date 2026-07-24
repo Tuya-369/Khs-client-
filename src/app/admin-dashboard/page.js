@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError, api } from "@/lib/api";
 import { clearSession, getAccessToken } from "@/lib/session";
@@ -14,53 +14,64 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const loadRequests = async (status = statusFilter, read = readFilter) => {
-    const token = getAccessToken();
-    if (!token) {
-      router.push("/auth");
-      return;
-    }
-
-    setLoading(true);
-    setErrorMessage("");
-
-    try {
-      const [meResponse, requestsResponse] = await Promise.all([
-        api.me(token),
-        api.getAdminRequests(token, {
-          status:
-            status === "pending"
-              ? "PENDING"
-              : status === "approved"
-                ? "APPROVED"
-                : status === "rejected"
-                  ? "REJECTED"
-                  : undefined,
-          isReadByAdmin:
-            read === "read" ? "true" : read === "unread" ? "false" : undefined,
-          page: 1,
-          limit: 100,
-        }),
-      ]);
-
-      setProfile(meResponse?.data?.user || null);
-      setOrders(requestsResponse?.data?.items || []);
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        clearSession();
+  const loadRequests = useCallback(
+    async (status = statusFilter, read = readFilter) => {
+      const token = getAccessToken();
+      if (!token) {
         router.push("/auth");
         return;
       }
 
-      setErrorMessage("Хүсэлтийн жагсаалт татах үед алдаа гарлаа.");
-    } finally {
-      setLoading(false);
-    }
-  };
+      setLoading(true);
+      setErrorMessage("");
+
+      try {
+        const [meResponse, requestsResponse] = await Promise.all([
+          api.me(token),
+          api.getAdminRequests(token, {
+            status:
+              status === "pending"
+                ? "PENDING"
+                : status === "approved"
+                  ? "APPROVED"
+                  : status === "rejected"
+                    ? "REJECTED"
+                    : undefined,
+            isReadByAdmin:
+              read === "read"
+                ? "true"
+                : read === "unread"
+                  ? "false"
+                  : undefined,
+            page: 1,
+            limit: 100,
+          }),
+        ]);
+
+        setProfile(meResponse?.data?.user || null);
+        setOrders(requestsResponse?.data?.items || []);
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 401) {
+          clearSession();
+          router.push("/auth");
+          return;
+        }
+
+        setErrorMessage("Хүсэлтийн жагсаалт татах үед алдаа гарлаа.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [readFilter, router, statusFilter],
+  );
 
   useEffect(() => {
-    loadRequests(statusFilter, readFilter);
-  }, [statusFilter, readFilter]);
+    const loadTimer = window.setTimeout(() => {
+      void loadRequests(statusFilter, readFilter);
+    }, 0);
+
+    return () => window.clearTimeout(loadTimer);
+  }, [loadRequests, readFilter, statusFilter]);
 
   const handleUpdateStatus = async (id, newStatus) => {
     const token = getAccessToken();

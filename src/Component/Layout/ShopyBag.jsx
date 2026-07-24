@@ -1,13 +1,53 @@
 "use client";
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { X, ShoppingBag, Trash2 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { ApiError, api } from "@/lib/api";
+import { getAccessToken } from "@/lib/session";
 
 const formatPrice = (value) => `${value.toLocaleString("en-US")}₮`;
 
 export default function ShopyBag({ isOpen, onClose }) {
-  const { cartItems, totalItems, totalAmount, removeFromCart } = useCart();
+  const { cartItems, totalItems, totalAmount, removeFromCart, clearCart } =
+    useCart();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const handleCheckout = async () => {
+    const token = getAccessToken();
+    if (!token) {
+      setErrorMessage("Захиалга хийхийн тулд эхлээд нэвтэрнэ үү.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMessage("");
+
+    try {
+      await Promise.all(
+        cartItems.map((item) =>
+          api.createMerchOrder(token, {
+            merchItemId: item.id,
+            size: item.size,
+            color: item.color,
+            qty: item.qty,
+          }),
+        ),
+      );
+      clearCart();
+      onClose();
+    } catch (error) {
+      setErrorMessage(
+        error instanceof ApiError
+          ? error.message
+          : "Захиалга илгээх үед алдаа гарлаа.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -58,11 +98,12 @@ export default function ShopyBag({ isOpen, onClose }) {
                   >
                     <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-neutral-100 bg-white p-1">
                       <Image
-                        src={item.imageUrl}
+                        src={item.imageUrl || "/Token.png"}
                         alt={item.title}
                         width={64}
                         height={64}
                         sizes="64px"
+                        unoptimized
                         className="h-full w-full object-contain"
                       />
                     </div>
@@ -99,6 +140,11 @@ export default function ShopyBag({ isOpen, onClose }) {
           )}
 
           <div className="border-t border-neutral-200 bg-white px-5 py-4">
+            {errorMessage && (
+              <p className="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                {errorMessage}
+              </p>
+            )}
             <div className="mb-4 flex items-center justify-between text-sm">
               <span className="text-neutral-500">Нийт</span>
               <span className="font-bold text-neutral-900">
@@ -116,9 +162,11 @@ export default function ShopyBag({ isOpen, onClose }) {
               </Link>
               <button
                 type="button"
-                className="rounded-lg bg-neutral-900 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-amber-500 hover:text-neutral-900"
+                onClick={handleCheckout}
+                disabled={cartItems.length === 0 || isSubmitting}
+                className="rounded-lg bg-neutral-900 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-amber-500 hover:text-neutral-900 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                захиалах
+                {isSubmitting ? "Илгээж байна..." : "Захиалах"}
               </button>
             </div>
           </div>

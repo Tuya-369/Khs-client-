@@ -13,15 +13,12 @@ export default function Header() {
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() =>
+    Boolean(getAccessToken()),
+  );
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
   const { totalItems } = useCart();
-
-  useEffect(() => {
-    const token = getAccessToken();
-    setIsAuthenticated(Boolean(token));
-  }, []);
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
@@ -142,13 +139,13 @@ export default function Header() {
 
         {isMobileMenuOpen && (
           <div className="absolute top-20 left-0 w-full bg-neutral-100/80 backdrop-blur-xl border-b border-yellow-500 flex flex-col p-6 space-y-4 font-bold text-sm tracking-wide text-gray-700 lg:hidden shadow-lg animate-fade-in">
-            <a
+            <Link
               href="/"
               className="hover:text-black py-2 transition-colors"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Home
-            </a>
+            </Link>
             <a
               href="#"
               className="hover:text-black py-2 transition-colors"

@@ -1,4 +1,5 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+import { normalizeMerchItem } from "@/lib/merch";
 
 export class ApiError extends Error {
   constructor(message, details = {}) {
@@ -43,12 +44,23 @@ const apiRequest = async (path, options = {}) => {
     requestHeaders.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method,
-    headers: requestHeaders,
-    body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
-    credentials: "include",
-  });
+  let response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      method,
+      headers: requestHeaders,
+      body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
+      credentials: "include",
+    });
+  } catch (error) {
+    throw new ApiError(
+      `Backend сервертэй холбогдож чадсангүй (${API_BASE_URL}). Серверээ асаагаад дахин оролдоно уу.`,
+      {
+        code: "NETWORK_ERROR",
+        payload: error,
+      },
+    );
+  }
 
   const contentType = response.headers.get("content-type") || "";
   const payload = contentType.includes("application/json")
@@ -92,8 +104,26 @@ export const api = {
   login: (body) => apiRequest("/api/auth/login", { method: "POST", body }),
   verifyOtp: (body) =>
     apiRequest("/api/auth/verify-otp", { method: "POST", body }),
-  getMerchItems: () => apiRequest("/api/merch"),
-  getMerchById: (id) => apiRequest(`/api/merch/${id}`),
+  getMerchItems: async () => {
+    const payload = await apiRequest("/api/merch");
+    const normalizedData = Array.isArray(payload?.data)
+      ? payload.data.map((item) => normalizeMerchItem(item)).filter(Boolean)
+      : [];
+
+    return {
+      ...payload,
+      data: normalizedData,
+    };
+  },
+  getMerchById: async (id) => {
+    const payload = await apiRequest(`/api/merch/${id}`);
+    return {
+      ...payload,
+      data: normalizeMerchItem(payload?.data, 0),
+    };
+  },
+  createMerchOrder: (token, body) =>
+    apiRequest("/api/merch-orders", { method: "POST", token, body }),
   me: (token) => apiRequest("/api/auth/me", { token }),
   logout: (token) => apiRequest("/api/auth/logout", { method: "POST", token }),
   updateProfile: async (token, body) => {
@@ -189,8 +219,26 @@ export const api = {
   markRequestRead: (token, id) =>
     apiRequest(`/api/requests/${id}/read`, { method: "PATCH", token }),
 
-  getManagerOrders: (token, filter = "all") =>
-    apiRequest(`/api/merch-orders${toQueryString({ filter })}`, { token }),
+  getManagerOrders: async (token, filter = "all") => {
+    const payload = await apiRequest(
+      `/api/merch-orders${toQueryString({ filter })}`,
+      {
+        token,
+      },
+    );
+
+    const normalizedOrders = Array.isArray(payload?.data)
+      ? payload.data.map((order) => ({
+          ...order,
+          merchItem: normalizeMerchItem(order?.merchItem),
+        }))
+      : [];
+
+    return {
+      ...payload,
+      data: normalizedOrders,
+    };
+  },
   confirmOrder: (token, id) =>
     apiRequest(`/api/merch-orders/${id}/confirm`, { method: "PATCH", token }),
   markOrderRead: (token, id) =>

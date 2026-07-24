@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ApiError, api } from "@/lib/api";
 import { clearSession, getAccessToken } from "@/lib/session";
@@ -52,7 +53,7 @@ export default function DriverDashboard() {
     });
   };
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     const token = getAccessToken();
     if (!token) {
       router.push("/auth");
@@ -89,11 +90,15 @@ export default function DriverDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    const loadTimer = window.setTimeout(() => {
+      void loadDashboardData();
+    }, 0);
+
+    return () => window.clearTimeout(loadTimer);
+  }, [loadDashboardData]);
 
   useEffect(() => {
     return () => {
@@ -336,10 +341,12 @@ export default function DriverDashboard() {
                           key={image.id}
                           className="relative rounded-lg overflow-hidden border border-slate-200 bg-white aspect-square"
                         >
-                          <img
+                          <Image
                             src={image.url}
                             alt={image.name}
-                            className="w-full h-full object-cover"
+                            fill
+                            unoptimized
+                            className="object-cover"
                           />
                           <button
                             type="button"

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import MerchAbout from "@/Component/LandingToken/Merch/MerchAbout";
+import { normalizeMerchItem } from "@/lib/merch";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -14,7 +15,7 @@ const getMerchById = async (id) => {
   }
 
   const payload = await response.json();
-  return payload?.data || null;
+  return normalizeMerchItem(payload?.data);
 };
 
 export default async function MerchDetailPage({ params }) {

@@ -94,6 +94,7 @@ export default function MerchCard({
                   width={320}
                   height={320}
                   sizes="(max-width: 768px) 45vw, (max-width: 1024px) 30vw, 260px"
+                  unoptimized
                   className="max-h-full max-w-full object-contain transition-transform duration-500 group-hover:scale-105"
                 />
               </div>

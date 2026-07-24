@@ -31,7 +31,6 @@ export default function TokenAbout() {
           transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
           className="group relative order-1 flex items-center justify-center lg:order-0"
         >
-          //dddd
           <div className="absolute h-[65%] w-[65%] rounded-full bg-linear-to-br from-amber-400/25 to-orange-400/15 blur-3xl" />
           <motion.div
             style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}

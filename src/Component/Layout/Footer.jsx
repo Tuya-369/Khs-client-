@@ -64,7 +64,7 @@ export default function Footer() {
           {/* Холбоо барих */}
           <div>
             <h4 className="text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-400 mb-3.5">
-              Холбоо барих
+              Contact Us
             </h4>
             <ul className="flex flex-col gap-2.5">
               {contactItems.map(({ id, icon, text, href }) => (

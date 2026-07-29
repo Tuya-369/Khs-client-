@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -29,6 +29,18 @@ export default function RegisterForm() {
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [isOtpSent, setIsOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [secondsLeft, setSecondsLeft] = useState(0);
+
+  useEffect(() => {
+    if (!isOtpSent || secondsLeft <= 0) return;
+    const timer = window.setTimeout(
+      () => setSecondsLeft((value) => value - 1),
+      1000,
+    );
+    return () => window.clearTimeout(timer);
+  }, [isOtpSent, secondsLeft]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -56,7 +68,7 @@ export default function RegisterForm() {
 
     setSubmitting(true);
     try {
-      await api.register({
+      const registrationData = {
         sapId: formData.sapId,
         firstName: formData.firstName,
         lastName: formData.lastName,
@@ -64,6 +76,19 @@ export default function RegisterForm() {
         phoneNumber: formData.phoneNumber,
         password: formData.password,
         confirmPassword: formData.confirmPassword,
+      };
+
+      if (!isOtpSent) {
+        await api.requestRegistrationOtp(registrationData);
+        setIsOtpSent(true);
+        setSecondsLeft(60);
+        setSuccessMessage("Баталгаажуулах код таны утсанд илгээгдлээ.");
+        return;
+      }
+
+      await api.verifyRegistrationOtp({
+        phoneNumber: formData.phoneNumber,
+        code: otpCode,
       });
 
       setSuccessMessage(
@@ -78,6 +103,24 @@ export default function RegisterForm() {
       } else {
         setErrorMessage("Бүртгүүлэх үед алдаа гарлаа. Дахин оролдоно уу.");
       }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setSubmitting(true);
+    setErrorMessage("");
+    try {
+      await api.requestRegistrationOtp({ ...formData });
+      setSecondsLeft(60);
+      setSuccessMessage("Шинэ баталгаажуулах код илгээгдлээ.");
+    } catch (error) {
+      setErrorMessage(
+        error instanceof ApiError
+          ? error.message
+          : "Код дахин илгээхэд алдаа гарлаа.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -240,12 +283,46 @@ export default function RegisterForm() {
                 </div>
               </div>
 
+              {isOtpSent && (
+                <div className="space-y-2 rounded-lg border border-yellow-200 bg-yellow-50 p-3">
+                  <label className="block text-xs font-medium text-neutral-700">
+                    Утсанд ирсэн 6 оронтой OTP код
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    required
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={(event) =>
+                      setOtpCode(event.target.value.replace(/\D/g, ""))
+                    }
+                    placeholder="000000"
+                    className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-center text-lg tracking-[0.35em] text-neutral-900 placeholder-neutral-400 focus:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                  />
+                  <button
+                    type="button"
+                    disabled={submitting || secondsLeft > 0}
+                    onClick={handleResendOtp}
+                    className="text-xs font-semibold text-neutral-600 hover:text-yellow-600 disabled:cursor-not-allowed disabled:text-neutral-400"
+                  >
+                    {secondsLeft > 0
+                      ? `Дахин илгээх (${secondsLeft} сек)`
+                      : "Дахин илгээх"}
+                  </button>
+                </div>
+              )}
+
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || (isOtpSent && otpCode.length !== 6)}
                 className="w-full rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-yellow-400 hover:text-neutral-900 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all mt-3"
               >
-                {submitting ? "Түр хүлээнэ үү..." : "Бүртгүүлэх"}
+                {submitting
+                  ? "Түр хүлээнэ үү..."
+                  : isOtpSent
+                    ? "Код баталгаажуулж бүртгүүлэх"
+                    : "OTP код авах"}
               </button>
 
               {errorMessage && (

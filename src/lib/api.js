@@ -101,9 +101,19 @@ const apiRequest = async (path, options = {}) => {
 export const api = {
   register: (body) =>
     apiRequest("/api/auth/register", { method: "POST", body }),
+  requestRegistrationOtp: (body) =>
+    apiRequest("/api/auth/register/request-otp", { method: "POST", body }),
+  verifyRegistrationOtp: (body) =>
+    apiRequest("/api/auth/register/verify-otp", { method: "POST", body }),
   login: (body) => apiRequest("/api/auth/login", { method: "POST", body }),
   verifyOtp: (body) =>
     apiRequest("/api/auth/verify-otp", { method: "POST", body }),
+  forgotPassword: (body) =>
+    apiRequest("/api/auth/forgot-password", { method: "POST", body }),
+  verifyForgotOtp: (body) =>
+    apiRequest("/api/auth/verify-forgot-otp", { method: "POST", body }),
+  resetPassword: (body) =>
+    apiRequest("/api/auth/reset-password", { method: "POST", body }),
   getMerchItems: async () => {
     const payload = await apiRequest("/api/merch");
     const normalizedData = Array.isArray(payload?.data)

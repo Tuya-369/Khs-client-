@@ -5,10 +5,35 @@ import Link from "next/link";
 import Image from "next/image";
 import { api } from "@/lib/api";
 
+let merchItemsCache = null;
+let merchItemsRequest = null;
+
+const loadMerchItems = async () => {
+  if (merchItemsCache) {
+    return merchItemsCache;
+  }
+
+  if (!merchItemsRequest) {
+    merchItemsRequest = api
+      .getMerchItems()
+      .then((response) => {
+        merchItemsCache = Array.isArray(response?.data) ? response.data : [];
+        return merchItemsCache;
+      })
+      .finally(() => {
+        merchItemsRequest = null;
+      });
+  }
+
+  return merchItemsRequest;
+};
+
 export default function MerchCard({
   hideTopTexts = false,
   excludeItemId,
   embedded = false,
+  itemLimit,
+  showViewAll = true,
 }) {
   const [items, setItems] = useState([]);
 
@@ -17,9 +42,9 @@ export default function MerchCard({
 
     const loadItems = async () => {
       try {
-        const response = await api.getMerchItems();
+        const merchItems = await loadMerchItems();
         if (!isMounted) return;
-        setItems(Array.isArray(response?.data) ? response.data : []);
+        setItems(merchItems);
       } catch {
         if (!isMounted) return;
         setItems([]);
@@ -34,8 +59,11 @@ export default function MerchCard({
   }, []);
 
   const visibleItems = useMemo(() => {
-    return items.filter((item) => item.id !== excludeItemId);
-  }, [items, excludeItemId]);
+    const filteredItems = items.filter((item) => item.id !== excludeItemId);
+    return Number.isFinite(itemLimit)
+      ? filteredItems.slice(0, itemLimit)
+      : filteredItems;
+  }, [items, excludeItemId, itemLimit]);
 
   const sectionClassName = embedded
     ? "w-full px-0 py-0 text-neutral-800"
@@ -70,10 +98,13 @@ export default function MerchCard({
             </p>
           )}
         </div>
-        {!hideTopTexts && (
-          <span className="text-sm font-medium text-neutral-500 cursor-pointer hover:text-yellow-400 transition-colors">
+        {!hideTopTexts && showViewAll && (
+          <Link
+            href="/merch"
+            className="text-sm font-medium text-neutral-500 transition-colors hover:text-yellow-400"
+          >
             Бүгдийг үзэх &rarr;
-          </span>
+          </Link>
         )}
       </div>
 

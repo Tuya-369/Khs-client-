@@ -7,7 +7,7 @@ export default function Home() {
     <div className="w-full">
       <TokenAbout />
       <HeroSlider />
-      <MerchCard />
+      <MerchCard itemLimit={8} />
     </div>
   );
 }

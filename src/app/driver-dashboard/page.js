@@ -447,6 +447,12 @@ export default function DriverDashboard() {
                       {order.description}
                     </p>
 
+                    {order.status === "APPROVED" && (
+                      <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-xs font-medium text-emerald-800">
+                        Таны захиалгыг баталлаа. Тантай эргэж холбогдох болно.
+                      </p>
+                    )}
+
                     {order.images?.length > 0 && (
                       <div className="text-[11px] font-medium text-slate-400 flex items-center gap-1">
                         📎 Хавсаргасан зураг:{" "}

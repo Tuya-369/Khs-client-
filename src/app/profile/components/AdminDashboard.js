@@ -6,7 +6,6 @@ import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/session";
 import {
   getItemDate,
-  isNewItem,
   getRequesterSap,
   getRequesterName,
   formatDate,
@@ -17,13 +16,12 @@ export default function AdminDashboard({ currentUser }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [updatingItemId, setUpdatingItemId] = useState("");
 
-  // Шүүлтүүрүүд
+  // Шүүлтүүрийн state-үүд
   const [sapQuery, setSapQuery] = useState("");
-  const [dashboardFilter, setDashboardFilter] = useState("all");
-  const [verificationFilter, setVerificationFilter] = useState("all");
-  const [selectedYear, setSelectedYear] = useState("all");
-  const [selectedMonth, setSelectedMonth] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all"); // 'all', 'approved', 'unapproved'
+  const [selectedDate, setSelectedDate] = useState(""); // YYYY-MM-DD хайх огноо
 
   // Модал цонхны state
   const [selectedItem, setSelectedItem] = useState(null);
@@ -59,44 +57,68 @@ export default function AdminDashboard({ currentUser }) {
     fetchItems();
   }, [role]);
 
-  // Он сонгох жагсаалт үүсгэх
-  const yearOptions = useMemo(() => {
-    const years = new Set();
-    items.forEach((item) => {
-      const dateValue = getItemDate(item, role);
-      if (dateValue) years.add(new Date(dateValue).getFullYear());
-    });
-    return Array.from(years).sort((a, b) => b - a);
-  }, [items, role]);
+  const handleStatusUpdate = async (event, itemId, status) => {
+    event.stopPropagation();
+
+    const token = getAccessToken();
+    if (!token) return;
+
+    setUpdatingItemId(itemId);
+    setError("");
+    try {
+      if (role === "TOKEN_MANAGER") {
+        if (status === "CONFIRMED") {
+          await api.confirmOrder(token, itemId);
+        } else {
+          await api.rejectOrder(token, itemId);
+        }
+      } else {
+        await api.updateRequestStatus(token, itemId, status);
+      }
+      setItems((currentItems) =>
+        currentItems.map((item) =>
+          item.id === itemId ? { ...item, status } : item,
+        ),
+      );
+    } catch {
+      setError("Захиалгын төлөв шинэчлэх үед алдаа гарлаа.");
+    } finally {
+      setUpdatingItemId("");
+    }
+  };
 
   // Дата шүүх логик
   const filteredItems = useMemo(() => {
     let rows = [...items];
-    if (dashboardFilter === "new")
-      rows = rows.filter((item) => isNewItem(item, role));
-    else if (dashboardFilter === "old")
-      rows = rows.filter((item) => !isNewItem(item, role));
 
-    if (selectedYear !== "all") {
+    // 1. Баталсан / Батлаагүй товчлуураар шүүх
+    if (statusFilter === "approved") {
+      rows = rows.filter((item) =>
+        ["APPROVED", "CONFIRMED"].includes(item?.status),
+      );
+    } else if (statusFilter === "unapproved") {
       rows = rows.filter(
-        (item) =>
-          String(new Date(getItemDate(item, role)).getFullYear()) ===
-          selectedYear,
+        (item) => !["APPROVED", "CONFIRMED"].includes(item?.status),
       );
     }
-    if (selectedMonth !== "all") {
-      rows = rows.filter(
-        (item) =>
-          String(new Date(getItemDate(item, role)).getMonth() + 1) ===
-          selectedMonth,
-      );
+
+    // 2. Огнооны нэгдсэн хайлтаар шүүх (Жил, сар, өдөр)
+    if (selectedDate) {
+      rows = rows.filter((item) => {
+        const itemDateValue = getItemDate(item, role);
+        if (!itemDateValue) return false;
+
+        const dateObj = new Date(itemDateValue);
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+        const day = String(dateObj.getDate()).padStart(2, "0");
+        const itemDateString = `${year}-${month}-${day}`;
+
+        return itemDateString === selectedDate;
+      });
     }
-    if (role === "ADMIN") {
-      if (verificationFilter === "approved")
-        rows = rows.filter((item) => item?.status === "APPROVED");
-      else if (verificationFilter === "rejected")
-        rows = rows.filter((item) => item?.status === "REJECTED");
-    }
+
+    // 3. SAP дугаараар шүүх
     const query = sapQuery.trim().toLowerCase();
     if (query) {
       rows = rows.filter((item) =>
@@ -105,21 +127,13 @@ export default function AdminDashboard({ currentUser }) {
           .includes(query),
       );
     }
+
     return rows.sort(
       (a, b) =>
         new Date(getItemDate(b, role) || 0).getTime() -
         new Date(getItemDate(a, role) || 0).getTime(),
     );
-  }, [
-    items,
-    dashboardFilter,
-    verificationFilter,
-    selectedYear,
-    selectedMonth,
-    sapQuery,
-    role,
-    currentUser,
-  ]);
+  }, [items, statusFilter, selectedDate, sapQuery, role, currentUser]);
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-xs space-y-4 animate-fade-in">
@@ -138,66 +152,48 @@ export default function AdminDashboard({ currentUser }) {
           />
         </div>
 
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar text-xs">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          {/* Шинэ/Хуучин товчны оронд Баталсан/Батлаагүй Button Group */}
           <div className="flex gap-1 bg-slate-100 p-0.5 rounded-lg shrink-0">
             {[
               { k: "all", l: "Бүгд" },
-              { k: "new", l: "Шинэ" },
-              { k: "old", l: "Хуучин" },
+              { k: "approved", l: "Баталсан" },
+              { k: "unapproved", l: "Батлаагүй" },
             ].map((f) => (
               <button
                 key={f.k}
-                onClick={() => setDashboardFilter(f.k)}
-                className={`px-2.5 py-1 rounded-md font-medium transition ${dashboardFilter === f.k ? "bg-white text-slate-900 shadow-xs" : "text-slate-500 hover:text-slate-900"}`}
+                onClick={() => setStatusFilter(f.k)}
+                className={`px-3 py-1.5 rounded-md font-medium transition text-xs ${
+                  statusFilter === f.k
+                    ? "bg-white text-slate-900 shadow-xs"
+                    : "text-slate-500 hover:text-slate-900"
+                }`}
               >
                 {f.l}
               </button>
             ))}
           </div>
 
-          {role === "ADMIN" && (
-            <div className="flex gap-1 bg-slate-100 p-0.5 rounded-lg shrink-0">
-              {[
-                { k: "all", l: "Бүх төлөв" },
-                { k: "approved", l: "Баталсан" },
-                { k: "rejected", l: "Татгалзсан" },
-              ].map((f) => (
-                <button
-                  key={f.k}
-                  onClick={() => setVerificationFilter(f.k)}
-                  className={`px-2.5 py-1 rounded-md font-medium transition ${verificationFilter === f.k ? "bg-white text-slate-900 shadow-xs" : "text-slate-500"}`}
-                >
-                  {f.l}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(e.target.value)}
-            className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-slate-600 font-medium"
-          >
-            <option value="all">Бүх он</option>
-            {yearOptions.map((y) => (
-              <option key={y} value={String(y)}>
-                {y}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-slate-600 font-medium"
-          >
-            <option value="all">Бүх сар</option>
-            {Array.from({ length: 12 }).map((_, i) => (
-              <option key={i + 1} value={String(i + 1)}>
-                {i + 1} сар
-              </option>
-            ))}
-          </select>
+          {/* Он, сар, өдрийн Нэгдсэн Огноо Хайгч */}
+          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5">
+            <span className="text-slate-400 font-medium">Огноо:</span>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="bg-transparent focus:outline-none text-slate-700 font-medium cursor-pointer"
+            />
+            {selectedDate && (
+              <button
+                type="button"
+                onClick={() => setSelectedDate("")}
+                className="ml-1 text-slate-400 hover:text-slate-600 font-bold transition"
+                title="Цэвэрлэх"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -233,64 +229,136 @@ export default function AdminDashboard({ currentUser }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {filteredItems.map((item) => (
-                  <tr
-                    key={item.id}
-                    onClick={() => setSelectedItem(item)}
-                    className="hover:bg-slate-50/80 cursor-pointer transition"
-                  >
-                    <td className="p-3 text-slate-400 font-mono text-[10px]">
-                      {item.id?.slice(0, 6)}
-                    </td>
-                    <td className="p-3 font-semibold text-slate-700">
-                      {getRequesterSap(item, role, currentUser)}
-                    </td>
-                    <td className="p-3 font-medium text-slate-800">
-                      {getRequesterName(item, role)}
-                    </td>
-                    <td className="p-3 text-slate-400">
-                      {formatDate(getItemDate(item, role))}
-                    </td>
-                    <td className="p-3 text-right">
-                      <span className="inline-flex px-2 py-0.5 rounded-md font-medium text-[10px] border border-slate-200 bg-slate-50 text-slate-600">
-                        {statusLabel(item?.status)}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {filteredItems.map((item) => {
+                  const isPendingItem =
+                    (role === "ADMIN" && item?.status === "PENDING") ||
+                    (role === "TOKEN_MANAGER" && item?.status === "NEW");
+
+                  return (
+                    <tr
+                      key={item.id}
+                      onClick={() => setSelectedItem(item)}
+                      className="hover:bg-slate-50/80 cursor-pointer transition"
+                    >
+                      <td className="p-3 text-slate-400 font-mono text-[10px]">
+                        {item.id?.slice(0, 6)}
+                      </td>
+                      <td className="p-3 font-semibold text-slate-700">
+                        {getRequesterSap(item, role, currentUser)}
+                      </td>
+                      <td className="p-3 font-medium text-slate-800">
+                        {getRequesterName(item, role)}
+                      </td>
+                      <td className="p-3 text-slate-400">
+                        {formatDate(getItemDate(item, role))}
+                      </td>
+                      <td className="p-3 text-right">
+                        {isPendingItem ? (
+                          <div className="inline-flex gap-1">
+                            <button
+                              type="button"
+                              onClick={(event) =>
+                                handleStatusUpdate(
+                                  event,
+                                  item.id,
+                                  role === "TOKEN_MANAGER"
+                                    ? "CONFIRMED"
+                                    : "APPROVED",
+                                )
+                              }
+                              disabled={updatingItemId === item.id}
+                              className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              Батлах
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(event) =>
+                                handleStatusUpdate(event, item.id, "REJECTED")
+                              }
+                              disabled={updatingItemId === item.id}
+                              className="rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-medium text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              Батлахгүй
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="inline-flex px-2 py-0.5 rounded-md font-medium text-[10px] border border-slate-200 bg-slate-50 text-slate-600">
+                            {statusLabel(item?.status)}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
 
           {/* Mobile First Жагсаалт */}
           <div className="md:hidden space-y-2">
-            {filteredItems.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => setSelectedItem(item)}
-                className="p-3 bg-slate-50/60 rounded-xl border border-slate-200/50 active:scale-[0.99] transition cursor-pointer flex justify-between items-start gap-2"
-              >
-                <div className="space-y-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold text-slate-800 truncate">
-                      {getRequesterName(item, role)}
-                    </span>
-                    <span className="text-[10px] font-mono text-slate-400 shrink-0">
-                      #{item.id?.slice(0, 5)}
-                    </span>
+            {filteredItems.map((item) => {
+              const isPendingItem =
+                (role === "ADMIN" && item?.status === "PENDING") ||
+                (role === "TOKEN_MANAGER" && item?.status === "NEW");
+
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => setSelectedItem(item)}
+                  className="p-3 bg-slate-50/60 rounded-xl border border-slate-200/50 active:scale-[0.99] transition cursor-pointer flex justify-between items-start gap-2"
+                >
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-slate-800 truncate">
+                        {getRequesterName(item, role)}
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-400 shrink-0">
+                        #{item.id?.slice(0, 5)}
+                      </span>
+                    </div>
+                    <p className="text-[11px] font-medium text-slate-500">
+                      SAP ID: {getRequesterSap(item, role, currentUser)}
+                    </p>
+                    <p className="text-[10px] text-slate-400">
+                      {formatDate(getItemDate(item, role))}
+                    </p>
                   </div>
-                  <p className="text-[11px] font-medium text-slate-500">
-                    SAP ID: {getRequesterSap(item, role, currentUser)}
-                  </p>
-                  <p className="text-[10px] text-slate-400">
-                    {formatDate(getItemDate(item, role))}
-                  </p>
+                  {isPendingItem ? (
+                    <div className="flex shrink-0 flex-col gap-1">
+                      <button
+                        type="button"
+                        onClick={(event) =>
+                          handleStatusUpdate(
+                            event,
+                            item.id,
+                            role === "TOKEN_MANAGER" ? "CONFIRMED" : "APPROVED",
+                          )
+                        }
+                        disabled={updatingItemId === item.id}
+                        className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Батлах
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(event) =>
+                          handleStatusUpdate(event, item.id, "REJECTED")
+                        }
+                        disabled={updatingItemId === item.id}
+                        className="rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-medium text-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Батлахгүй
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-md font-medium text-[10px] border border-slate-200 bg-white text-slate-600 shrink-0">
+                      {statusLabel(item?.status)}
+                    </span>
+                  )}
                 </div>
-                <span className="px-2 py-0.5 rounded-md font-medium text-[10px] border border-slate-200 bg-white text-slate-600 shrink-0">
-                  {statusLabel(item?.status)}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </>
       )}

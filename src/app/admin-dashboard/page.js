@@ -13,6 +13,7 @@ export default function AdminDashboard() {
   const [readFilter, setReadFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [updatingOrderId, setUpdatingOrderId] = useState("");
 
   const loadRequests = useCallback(
     async (status = statusFilter, read = readFilter) => {
@@ -80,11 +81,20 @@ export default function AdminDashboard() {
       return;
     }
 
+    const nextFilter = newStatus === "APPROVED" ? "approved" : "rejected";
+    setUpdatingOrderId(id);
+    setErrorMessage("");
     try {
-      await api.updateRequestStatus(token, id, newStatus.toUpperCase());
-      await loadRequests(statusFilter, readFilter);
+      await api.updateRequestStatus(token, id, newStatus);
+      setStatusFilter(nextFilter);
     } catch (error) {
-      setErrorMessage("Төлөв шинэчлэх үед алдаа гарлаа.");
+      setErrorMessage(
+        error instanceof ApiError
+          ? error.message
+          : "Төлөв шинэчлэх үед алдаа гарлаа.",
+      );
+    } finally {
+      setUpdatingOrderId("");
     }
   };
 
@@ -207,7 +217,7 @@ export default function AdminDashboard() {
                     : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
                 }`}
               >
-                Батлагдсан
+                Баталсан
                 <span
                   className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${statusFilter === "approved" ? "bg-emerald-700 text-emerald-100" : "bg-emerald-50 text-emerald-600"}`}
                 >
@@ -224,7 +234,7 @@ export default function AdminDashboard() {
                     : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
                 }`}
               >
-                Батлагдаагүй
+                Батлаагүй
                 <span
                   className={`text-[10px] font-mono px-1.5 py-0.2 rounded-md ${statusFilter === "rejected" ? "bg-rose-700 text-rose-100" : "bg-rose-50 text-rose-600"}`}
                 >
@@ -286,21 +296,44 @@ export default function AdminDashboard() {
                       </p>
                     </div>
 
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase border shrink-0 ${
-                        isApproved
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                          : isPendingNow
-                            ? "bg-blue-50 text-blue-700 border-blue-200"
+                    {isPendingNow ? (
+                      <div className="flex shrink-0 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void handleUpdateStatus(order.id, "APPROVED");
+                          }}
+                          disabled={updatingOrderId === order.id}
+                          className="rounded-md bg-emerald-600 px-2.5 py-1 text-[10px] font-bold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {updatingOrderId === order.id
+                            ? "Шинэчилж байна..."
+                            : "Баталсан"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void handleUpdateStatus(order.id, "REJECTED");
+                          }}
+                          disabled={updatingOrderId === order.id}
+                          className="rounded-md border border-rose-200 bg-rose-50 px-2.5 py-1 text-[10px] font-bold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Батлаагүй
+                        </button>
+                      </div>
+                    ) : (
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase border shrink-0 ${
+                          isApproved
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                             : "bg-rose-50 text-rose-700 border-rose-200"
-                      }`}
-                    >
-                      {isApproved
-                        ? "Батлагдсан"
-                        : isPendingNow
-                          ? "Шинэ"
-                          : "Батлагдаагүй"}
-                    </span>
+                        }`}
+                      >
+                        {isApproved ? "Баталсан" : "Батлаагүй"}
+                      </span>
+                    )}
                   </div>
 
                   <div className="bg-slate-50/70 rounded-xl p-3 border border-slate-100 space-y-2">
@@ -319,31 +352,6 @@ export default function AdminDashboard() {
                     <span className="text-[10px] font-mono text-slate-400">
                       Илгээсэн: {formatDate(order.createdAt)}
                     </span>
-
-                    {isPendingNow && (
-                      <div className="flex gap-1.5 ml-auto w-full sm:w-auto">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleUpdateStatus(order.id, "REJECTED");
-                          }}
-                          className="flex-1 sm:flex-none px-3 py-1.5 text-xs font-semibold border border-rose-200 bg-rose-50/30 text-rose-600 rounded-lg hover:bg-rose-50 active:bg-rose-100 transition"
-                        >
-                          Цуцлах
-                        </button>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleUpdateStatus(order.id, "APPROVED");
-                          }}
-                          className="flex-1 sm:flex-none px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 active:scale-95 transition shadow-xs"
-                        >
-                          Батлах
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </div>
               );

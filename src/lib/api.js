@@ -249,8 +249,24 @@ export const api = {
       data: normalizedOrders,
     };
   },
+  getMyMerchOrders: async (token) => {
+    const payload = await apiRequest("/api/merch-orders/my", { token });
+    const normalizedOrders = Array.isArray(payload?.data)
+      ? payload.data.map((order) => ({
+          ...order,
+          merchItem: normalizeMerchItem(order?.merchItem),
+        }))
+      : [];
+
+    return {
+      ...payload,
+      data: normalizedOrders,
+    };
+  },
   confirmOrder: (token, id) =>
     apiRequest(`/api/merch-orders/${id}/confirm`, { method: "PATCH", token }),
+  rejectOrder: (token, id) =>
+    apiRequest(`/api/merch-orders/${id}/reject`, { method: "PATCH", token }),
   markOrderRead: (token, id) =>
     apiRequest(`/api/merch-orders/${id}/read`, { method: "PATCH", token }),
 

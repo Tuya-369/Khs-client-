@@ -15,6 +15,7 @@ export default function ProfilePage() {
   const avatarInputRef = useRef(null);
 
   const [user, setUser] = useState(null);
+  const [merchOrders, setMerchOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -38,6 +39,12 @@ export default function ProfilePage() {
         const response = await api.me(token);
         const currentUser = response?.data?.user || null;
         setUser(currentUser);
+        try {
+          const ordersResponse = await api.getMyMerchOrders(token);
+          setMerchOrders(ordersResponse?.data || []);
+        } catch {
+          setMerchOrders([]);
+        }
         setForm({
           lastName: currentUser?.lastName || "",
           firstName: currentUser?.firstName || "",
@@ -156,6 +163,9 @@ export default function ProfilePage() {
 
   const hasDashboard = ["ADMIN", "DRIVER", "TOKEN_MANAGER"].includes(
     user?.role,
+  );
+  const confirmedMerchOrders = merchOrders.filter(
+    (order) => order?.status === "CONFIRMED",
   );
 
   return (
@@ -280,6 +290,50 @@ export default function ProfilePage() {
             )}
           </div>
         </div>
+
+        {confirmedMerchOrders.length > 0 && (
+          <section className="bg-white rounded-2xl border border-emerald-200 p-5 shadow-xs space-y-4">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">
+                Таны батлагдсан бараа
+              </h2>
+              <p className="mt-1 text-xs text-emerald-700">
+                Таны барааг баталлаа. Тантай удахгүй холбогдоно.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {confirmedMerchOrders.map((order) => (
+                <div
+                  key={order.id}
+                  className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3"
+                >
+                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-white">
+                    {order?.merchItem?.imageUrl ? (
+                      <Image
+                        src={order.merchItem.imageUrl}
+                        alt={order.merchItem.title || "Merch"}
+                        fill
+                        sizes="56px"
+                        unoptimized
+                        className="object-contain"
+                      />
+                    ) : null}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-bold text-slate-900">
+                      {order?.merchItem?.title || "Бараа"}
+                    </p>
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      Хэмжээ: {order?.size || "-"} | Өнгө: {order?.color || "-"}{" "}
+                      | Тоо: {order?.qty ?? "-"}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* 🌟 Нэгдсэн Dashboard Компонент (Зөвхөн эрхтэй хэрэглэгчид харагдана) */}
         {hasDashboard && <AdminDashboard currentUser={user} />}

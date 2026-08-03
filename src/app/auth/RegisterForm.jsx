@@ -322,7 +322,7 @@ export default function RegisterForm() {
                   ? "Түр хүлээнэ үү..."
                   : isOtpSent
                     ? "Код баталгаажуулж бүртгүүлэх"
-                    : "OTP код авах"}
+                    : "Бүртгүүлэх"}
               </button>
 
               {errorMessage && (

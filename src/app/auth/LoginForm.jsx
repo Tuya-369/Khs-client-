@@ -80,20 +80,11 @@ function ForgotPasswordForm({ onBack }) {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight text-yellow-500">
-          Нууц үг сэргээх
-        </h2>
-        <p className="mt-1 text-xs text-neutral-500">
-          Бүртгэлтэй утасны дугаараа ашиглан баталгаажуулна.
-        </p>
-      </div>
-
       {stage === "phone" && (
         <div className="space-y-4">
           <div>
             <label className="mb-1 block text-xs font-medium text-neutral-700">
-              Утасны дугаар
+              Бүртгэлтэй Утасны дугаар
             </label>
             <input
               type="tel"
@@ -109,7 +100,7 @@ function ForgotPasswordForm({ onBack }) {
             onClick={sendOtp}
             className="w-full rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-yellow-400 hover:text-neutral-900 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {submitting ? "Илгээж байна..." : "OTP код авах"}
+            {submitting ? "Илгээж байна..." : "Баталгаажуулах"}
           </button>
         </div>
       )}
@@ -118,7 +109,7 @@ function ForgotPasswordForm({ onBack }) {
         <div className="space-y-4">
           <div>
             <label className="mb-1 block text-xs font-medium text-neutral-700">
-              6 оронтой OTP код
+              Баталгаажуулах код
             </label>
             <input
               type="text"

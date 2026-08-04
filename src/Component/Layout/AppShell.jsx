@@ -20,7 +20,7 @@ export default function AppShell({ children }) {
 
   const getRouteByRole = (role) => {
     if (role === "ADMIN") return "/admin-dashboard";
-    if (role === "DRIVER") return "/driver-dashboard";
+    if (role === "DRIVER") return "/profile";
     if (role === "TOKEN_MANAGER") return "/token-dashboard";
     return "/";
   };

@@ -2,16 +2,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { Camera, Check, ChevronDown, Send, X } from "lucide-react";
 import { ApiError, api } from "@/lib/api";
 import { clearSession, getAccessToken } from "@/lib/session";
 import DashboardProfileCard from "@/Component/common/DashboardProfileCard";
 
-export default function DriverDashboard() {
+export function DriverDashboardContent({ embedded = false }) {
   const router = useRouter();
   const [profile, setProfile] = useState(null);
   const [vehicles, setVehicles] = useState([]);
   const [activeCarId, setActiveCarId] = useState("");
-  const [selectedPartId, setSelectedPartId] = useState("");
+  const [selectedPartIds, setSelectedPartIds] = useState([]);
+  const [openCategoryIds, setOpenCategoryIds] = useState([]);
   const [damageImages, setDamageImages] = useState([]);
   const [issueDescription, setIssueDescription] = useState("");
   const [submittedOrders, setSubmittedOrders] = useState([]);
@@ -96,8 +98,14 @@ export default function DriverDashboard() {
     const loadTimer = window.setTimeout(() => {
       void loadDashboardData();
     }, 0);
+    const refreshTimer = window.setInterval(() => {
+      void loadDashboardData();
+    }, 15_000);
 
-    return () => window.clearTimeout(loadTimer);
+    return () => {
+      window.clearTimeout(loadTimer);
+      window.clearInterval(refreshTimer);
+    };
   }, [loadDashboardData]);
 
   useEffect(() => {
@@ -142,9 +150,35 @@ export default function DriverDashboard() {
     });
   };
 
+  const togglePart = (partId) => {
+    setSelectedPartIds((current) =>
+      current.includes(partId)
+        ? current.filter((id) => id !== partId)
+        : [...current, partId],
+    );
+  };
+
+  const toggleCategory = (categoryId) => {
+    setOpenCategoryIds((current) =>
+      current.includes(categoryId)
+        ? current.filter((id) => id !== categoryId)
+        : [...current, categoryId],
+    );
+  };
+
   const submitOrder = async () => {
     if (!activeCarId) {
       setErrorMessage("Эхлээд тээврийн хэрэгслээ сонгоно уу.");
+      return;
+    }
+
+    if (selectedPartIds.length === 0) {
+      setErrorMessage("Дор хаяж нэг сэлбэг сонгоно уу.");
+      return;
+    }
+
+    if (damageImages.length === 0) {
+      setErrorMessage("Эвдэрсэн хэсгийн дор хаяж нэг зураг оруулна уу.");
       return;
     }
 
@@ -166,7 +200,7 @@ export default function DriverDashboard() {
     try {
       const response = await api.createRequest(token, {
         vehicleId: activeCarId,
-        partId: selectedPartId || undefined,
+        partIds: selectedPartIds,
         description: issueDescription.trim(),
         images: damageImages.map((image) => image.file),
       });
@@ -183,7 +217,8 @@ export default function DriverDashboard() {
       damageImages.forEach((image) => URL.revokeObjectURL(image.url));
       setDamageImages([]);
       setIssueDescription("");
-      setSelectedPartId("");
+      setSelectedPartIds([]);
+      setOpenCategoryIds([]);
       await loadDashboardData();
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
@@ -203,16 +238,24 @@ export default function DriverDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-800 antialiased p-4 sm:p-8">
+    <div
+      className={
+        embedded
+          ? "text-slate-800 antialiased"
+          : "min-h-screen bg-[#f8fafc] text-slate-800 antialiased p-4 sm:p-8"
+      }
+    >
       <div className="max-w-3xl mx-auto space-y-5">
-        <DashboardProfileCard
-          badge={profile?.firstName?.charAt(0)?.toUpperCase() || "D"}
-          name={profile ? `${profile.lastName} ${profile.firstName}` : "..."}
-          subtitle="Жолооч"
-          sapId={profile?.sapId || "-"}
-          totalLabel="Нийт хүсэлт"
-          totalValue={submittedOrders.length}
-        />
+        {!embedded && (
+          <DashboardProfileCard
+            badge={profile?.firstName?.charAt(0)?.toUpperCase() || "D"}
+            name={profile ? `${profile.lastName} ${profile.firstName}` : "..."}
+            subtitle="Жолооч"
+            sapId={profile?.sapId || "-"}
+            totalLabel="Нийт хүсэлт"
+            totalValue={submittedOrders.length}
+          />
+        )}
 
         {loading && (
           <div className="p-4 bg-white border border-slate-200 rounded-xl text-sm text-slate-500">
@@ -252,7 +295,8 @@ export default function DriverDashboard() {
                   type="button"
                   onClick={() => {
                     setActiveCarId(activeCarId === car.id ? "" : car.id);
-                    setSelectedPartId("");
+                    setSelectedPartIds([]);
+                    setOpenCategoryIds([]);
                   }}
                   className="w-full text-left p-4 sm:p-5 font-medium flex justify-between items-center hover:bg-slate-50/50 active:bg-slate-50 transition"
                 >
@@ -264,27 +308,66 @@ export default function DriverDashboard() {
                       {car.plate}
                     </span>
                   </div>
-                  <span className="text-slate-400 text-xs shrink-0">
-                    {activeCarId === car.id ? "▲" : "▼"}
-                  </span>
+                  <ChevronDown
+                    size={18}
+                    className={`shrink-0 text-slate-400 transition-transform ${activeCarId === car.id ? "rotate-180" : ""}`}
+                  />
                 </button>
 
                 {activeCarId === car.id && (
-                  <div className="p-4 grid grid-cols-1 sm:grid-cols-3 gap-2 bg-slate-50/50 border-t border-slate-100">
-                    {car.parts.map((part) => (
-                      <button
-                        type="button"
-                        key={part.id}
-                        onClick={() => setSelectedPartId(part.id)}
-                        className={`p-3.5 text-xs rounded-xl border transition-all font-semibold text-left ${
-                          selectedPartId === part.id
-                            ? "border-slate-900 bg-slate-900 text-white shadow-sm"
-                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-400 active:bg-slate-50"
-                        }`}
-                      >
-                        {part.name}
-                      </button>
-                    ))}
+                  <div className="p-4 space-y-2 bg-slate-50/50 border-t border-slate-100">
+                    {car.partCategories?.map((category) => {
+                      const isOpen = openCategoryIds.includes(category.id);
+
+                      return (
+                        <div
+                          key={category.id}
+                          className="rounded-lg border border-slate-200 bg-white overflow-hidden"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => toggleCategory(category.id)}
+                            className="w-full flex items-center justify-between gap-3 px-3.5 py-3 text-left text-xs font-bold text-slate-800 hover:bg-slate-50"
+                          >
+                            <span>{category.name}</span>
+                            <ChevronDown
+                              size={16}
+                              className={`text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                            />
+                          </button>
+                          {isOpen && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 border-t border-slate-100 p-3">
+                              {category.parts.map((part) => {
+                                const isSelected = selectedPartIds.includes(
+                                  part.id,
+                                );
+                                return (
+                                  <label
+                                    key={part.id}
+                                    className={`flex items-center gap-2.5 rounded-md border px-3 py-2.5 text-xs font-medium cursor-pointer transition ${isSelected ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 text-slate-700 hover:border-slate-400"}`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isSelected}
+                                      onChange={() => togglePart(part.id)}
+                                      className="sr-only"
+                                    />
+                                    <span
+                                      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${isSelected ? "border-white bg-white text-slate-900" : "border-slate-300"}`}
+                                    >
+                                      {isSelected && (
+                                        <Check size={12} strokeWidth={3} />
+                                      )}
+                                    </span>
+                                    {part.name}
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -302,7 +385,7 @@ export default function DriverDashboard() {
           <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-md space-y-4 animate-in fade-in duration-200">
             <div>
               <h4 className="font-bold text-sm sm:text-base text-slate-900">
-                📌 Сонгосон:{" "}
+                Сонгосон:{" "}
                 <span className="text-amber-600">{activeCar.name}</span>
               </h4>
             </div>
@@ -315,7 +398,7 @@ export default function DriverDashboard() {
                 <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:border-slate-400 bg-slate-50/50 relative active:bg-slate-100 transition-colors">
                   <label className="block cursor-pointer w-full h-full py-2">
                     <span className="text-xs font-semibold text-slate-700 block">
-                      📷 Зураг нэмэх
+                      <Camera size={15} className="inline mr-1" /> Зураг нэмэх
                     </span>
                     <span className="text-[10px] text-slate-400 block mt-0.5">
                       Камер болон галерейгаас олон зураг боломжтой
@@ -353,7 +436,7 @@ export default function DriverDashboard() {
                             onClick={() => removeDamageImage(image.id)}
                             className="absolute top-1 right-1 w-5 h-5 text-xs font-bold rounded-full bg-black/70 text-white flex items-center justify-center active:bg-black"
                           >
-                            ×
+                            <X size={13} />
                           </button>
                         </div>
                       ))}
@@ -380,7 +463,8 @@ export default function DriverDashboard() {
               <button
                 type="button"
                 onClick={() => {
-                  setSelectedPartId("");
+                  setSelectedPartIds([]);
+                  setOpenCategoryIds([]);
                   setDamageImages([]);
                   setIssueDescription("");
                 }}
@@ -394,7 +478,13 @@ export default function DriverDashboard() {
                 disabled={submitting}
                 className="flex-1 sm:flex-none px-5 py-2.5 text-xs font-semibold bg-slate-900 text-white rounded-xl hover:bg-slate-800 active:scale-[0.99] transition shadow-sm"
               >
-                {submitting ? "Илгээж байна..." : "Хүсэлт илгээх"}
+                {submitting ? (
+                  "Илгээж байна..."
+                ) : (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Send size={14} /> Хүсэлт илгээх
+                  </span>
+                )}
               </button>
             </div>
           </div>
@@ -429,7 +519,12 @@ export default function DriverDashboard() {
                           <span className="text-slate-300 font-normal mx-1">
                             |
                           </span>{" "}
-                          {order.part?.name || "Ерөнхий хүсэлт"}
+                          {order.requestParts
+                            ?.map((item) => item.part?.name)
+                            .filter(Boolean)
+                            .join(", ") ||
+                            order.part?.name ||
+                            "Ерөнхий хүсэлт"}
                         </div>
                         <div className="text-[10px] text-slate-400 font-mono">
                           {formatDate(order.createdAt)}
@@ -449,7 +544,8 @@ export default function DriverDashboard() {
 
                     {order.status === "APPROVED" && (
                       <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-xs font-medium text-emerald-800">
-                        Таны захиалгыг баталлаа. Тантай эргэж холбогдох болно.
+                        Таны захиалгыг админ амжилттай баталлаа. Тантай эргэж
+                        холбогдох болно.
                       </p>
                     )}
 
@@ -470,4 +566,14 @@ export default function DriverDashboard() {
       </div>
     </div>
   );
+}
+
+export default function DriverDashboard() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace("/profile");
+  }, [router]);
+
+  return null;
 }

@@ -12,6 +12,11 @@ import {
   statusLabel,
 } from "../helpers";
 
+const getUploadedImageUrl = (url) =>
+  url?.startsWith("/")
+    ? `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}${url}`
+    : url;
+
 export default function AdminDashboard({ currentUser }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -446,12 +451,54 @@ export default function AdminDashboard({ currentUser }) {
                     {selectedItem?.vehicle?.name || "-"} •{" "}
                     {selectedItem?.vehicle?.plate || "-"}
                   </p>
+                  <div>
+                    <span className="font-semibold text-slate-900">
+                      Сонгосон сэлбэг:
+                    </span>{" "}
+                    {selectedItem?.requestParts
+                      ?.map((item) => item.part?.name)
+                      .filter(Boolean)
+                      .join(", ") ||
+                      selectedItem?.part?.name ||
+                      "-"}
+                  </div>
                   <p>
                     <span className="font-semibold text-slate-900">
                       Тайлбар:
                     </span>{" "}
                     {selectedItem?.description || "-"}
                   </p>
+                  {selectedItem?.images?.length > 0 && (
+                    <div>
+                      <p className="mb-2 font-semibold text-slate-900">
+                        Эвдрэлийн зургууд:
+                      </p>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                        {selectedItem.images.map((image) => {
+                          const imageUrl = getUploadedImageUrl(image.url);
+
+                          return (
+                            <a
+                              key={image.id}
+                              href={imageUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="relative aspect-square overflow-hidden rounded-lg border border-slate-200"
+                            >
+                              <Image
+                                src={imageUrl}
+                                alt="Эвдрэлийн зураг"
+                                fill
+                                sizes="(max-width: 640px) 45vw, 160px"
+                                unoptimized
+                                className="object-cover"
+                              />
+                            </a>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </div>

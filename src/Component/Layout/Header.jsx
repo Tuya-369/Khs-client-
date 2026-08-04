@@ -71,18 +71,22 @@ export default function Header() {
         </Link>
 
         <nav className="hidden lg:flex items-center space-x-10 text-xs font-bold tracking-widest text-gray-600 uppercase">
-          <a href="#" className="hover:text-yellow-500 transition-colors">
+          <Link href="/" className="hover:text-yellow-500 transition-colors">
             Home
-          </a>
-          <a href="#" className="hover:text-yellow-500 transition-colors">
-            About Us
-          </a>
-          <a href="#" className="hover:text-yellow-500 transition-colors">
+          </Link>
+
+          <Link
+            href="/merch"
+            className="hover:text-yellow-500 transition-colors"
+          >
             Merchandise
-          </a>
-          <a href="#" className="hover:text-yellow-500 transition-colors">
+          </Link>
+          <Link
+            href="/#contact"
+            className="hover:text-yellow-500 transition-colors"
+          >
             Contact
-          </a>
+          </Link>
         </nav>
 
         <div className="flex items-center space-x-5 text-gray-700 relative">
@@ -146,27 +150,21 @@ export default function Header() {
             >
               Home
             </Link>
-            <a
-              href="#"
-              className="hover:text-black py-2 transition-colors"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              About Us
-            </a>
-            <a
-              href="#"
+
+            <Link
+              href="/merch"
               className="hover:text-black py-2 transition-colors"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Merchandise
-            </a>
-            <a
-              href="#"
+            </Link>
+            <Link
+              href="/#contact"
               className="hover:text-black py-2 transition-colors"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Contact
-            </a>
+            </Link>
             {isAuthenticated && (
               <>
                 <Link

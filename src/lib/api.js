@@ -201,9 +201,7 @@ export const api = {
   createRequest: (token, data) => {
     const formData = new FormData();
     formData.append("vehicleId", data.vehicleId);
-    if (data.partId) {
-      formData.append("partId", data.partId);
-    }
+    formData.append("partIds", JSON.stringify(data.partIds));
     formData.append("description", data.description);
 
     (data.images || []).forEach((file) => {
@@ -220,6 +218,8 @@ export const api = {
 
   getAdminRequests: (token, query) =>
     apiRequest(`/api/requests${toQueryString(query)}`, { token }),
+  getAdminRequestById: (token, id) =>
+    apiRequest(`/api/requests/${id}`, { token }),
   updateRequestStatus: (token, id, status) =>
     apiRequest(`/api/requests/${id}/status`, {
       method: "PATCH",

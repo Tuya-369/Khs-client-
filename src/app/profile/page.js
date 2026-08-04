@@ -7,8 +7,9 @@ import { ApiError, api } from "@/lib/api";
 import { clearSession, getAccessToken, saveSession } from "@/lib/session";
 
 import EditableField from "./components/EditableField";
-import AdminDashboard from "./components/AdminDashboard"; // Шинэ нэгдсэн компонент
+import AdminDashboard from "./components/AdminDashboard";
 import { getProfileInitials } from "./helpers";
+import { DriverDashboardContent } from "../driver-dashboard/page";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -298,7 +299,7 @@ export default function ProfilePage() {
                 Таны батлагдсан бараа
               </h2>
               <p className="mt-1 text-xs text-emerald-700">
-                Таны барааг баталлаа. Тантай удахгүй холбогдоно.
+                Таны барааг баталлаа. Тантай удахгүй холбогдох болно.
               </p>
             </div>
 
@@ -335,8 +336,10 @@ export default function ProfilePage() {
           </section>
         )}
 
-        {/* 🌟 Нэгдсэн Dashboard Компонент (Зөвхөн эрхтэй хэрэглэгчид харагдана) */}
-        {hasDashboard && <AdminDashboard currentUser={user} />}
+        {user?.role === "DRIVER" && <DriverDashboardContent embedded />}
+        {user?.role !== "DRIVER" && hasDashboard && (
+          <AdminDashboard currentUser={user} />
+        )}
       </div>
     </div>
   );

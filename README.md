@@ -5,7 +5,7 @@ Language: JavaScript & React
 
 Styling: Tailwind CSS & CSS
 
-Database & Auth: MongoDB
+Backend & Database: Express API + PostgreSQL (Prisma)
 
 Package Manager: npm
 

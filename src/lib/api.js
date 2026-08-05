@@ -249,6 +249,27 @@ export const api = {
       data: normalizedOrders,
     };
   },
+  getAdminPanelOrders: async (token) => {
+    const payload = await apiRequest("/api/dashboard/admin-panel/orders", {
+      token,
+    });
+    const normalizeOrders = (orders) =>
+      Array.isArray(orders)
+        ? orders.map((order) => ({
+            ...order,
+            merchItem: normalizeMerchItem(order?.merchItem),
+          }))
+        : [];
+
+    return {
+      ...payload,
+      data: {
+        ...payload?.data,
+        pendingOrders: normalizeOrders(payload?.data?.pendingOrders),
+        reviewedOrders: normalizeOrders(payload?.data?.reviewedOrders),
+      },
+    };
+  },
   getMyMerchOrders: async (token) => {
     const payload = await apiRequest("/api/merch-orders/my", { token });
     const normalizedOrders = Array.isArray(payload?.data)

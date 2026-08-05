@@ -202,6 +202,18 @@ export default function LoginForm() {
   const [errorMessage, setErrorMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [isOtpSent, setIsOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
+  const [secondsLeft, setSecondsLeft] = useState(0);
+
+  useEffect(() => {
+    if (!isOtpSent || secondsLeft <= 0) return;
+    const timer = window.setTimeout(
+      () => setSecondsLeft((value) => value - 1),
+      1000,
+    );
+    return () => window.clearTimeout(timer);
+  }, [isOtpSent, secondsLeft]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -214,12 +226,35 @@ export default function LoginForm() {
     setErrorMessage("");
 
     try {
-      const response = await api.login(loginData);
+      await api.login(loginData);
+      setIsOtpSent(true);
+      setSecondsLeft(60);
+    } catch (error) {
+      if (error instanceof ApiError) {
+        setErrorMessage(error.message);
+      } else {
+        setErrorMessage("Нэвтрэх үед алдаа гарлаа. Дахин оролдоно уу.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setErrorMessage("");
+
+    try {
+      const response = await api.verifyOtp({
+        sapId: loginData.sapId,
+        code: otpCode,
+      });
       const accessToken = response?.data?.accessToken;
       const user = response?.data?.user;
 
       if (!accessToken || !user) {
-        throw new Error("Нэвтрэлтийн дараах өгөгдөл буруу байна.");
+        throw new Error("OTP баталгаажуулалтын өгөгдөл буруу байна.");
       }
 
       saveSession(accessToken, user);
@@ -228,7 +263,9 @@ export default function LoginForm() {
       if (error instanceof ApiError) {
         setErrorMessage(error.message);
       } else {
-        setErrorMessage("Нэвтрэх үед алдаа гарлаа. Дахин оролдоно уу.");
+        setErrorMessage(
+          "Код баталгаажуулах үед алдаа гарлаа. Дахин оролдоно уу.",
+        );
       }
     } finally {
       setSubmitting(false);
@@ -270,7 +307,10 @@ export default function LoginForm() {
             {isForgotPassword ? (
               <ForgotPasswordForm onBack={() => setIsForgotPassword(false)} />
             ) : (
-              <form className="space-y-4" onSubmit={handleSubmit}>
+              <form
+                className="space-y-4"
+                onSubmit={isOtpSent ? handleVerifyOtp : handleSubmit}
+              >
                 <div>
                   <label className="block text-xs font-medium text-neutral-700 mb-1">
                     SAP Дугаар эсвэл Утас
@@ -310,12 +350,47 @@ export default function LoginForm() {
                   />
                 </div>
 
+                {isOtpSent && (
+                  <div className="space-y-2 rounded-lg border border-yellow-200 bg-yellow-50 p-3">
+                    <label className="block text-xs font-medium text-neutral-700">
+                      Бүртгэлтэй утасны дугаар руу илгээсэн 6 оронтой код
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      required
+                      autoComplete="one-time-code"
+                      maxLength={6}
+                      value={otpCode}
+                      onChange={(event) =>
+                        setOtpCode(event.target.value.replace(/\D/g, ""))
+                      }
+                      placeholder="000000"
+                      className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-center text-lg tracking-[0.35em] text-neutral-900 placeholder-neutral-400 focus:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                    />
+                    <button
+                      type="button"
+                      disabled={submitting || secondsLeft > 0}
+                      onClick={handleSubmit}
+                      className="text-xs font-semibold text-neutral-600 hover:text-yellow-600 disabled:cursor-not-allowed disabled:text-neutral-400"
+                    >
+                      {secondsLeft > 0
+                        ? `Дахин илгээх (${secondsLeft} сек)`
+                        : "Код дахин илгээх"}
+                    </button>
+                  </div>
+                )}
+
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || (isOtpSent && otpCode.length !== 6)}
                   className="w-full rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-yellow-400 hover:text-neutral-900 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all mt-2"
                 >
-                  {submitting ? "Түр хүлээнэ үү..." : "Нэвтрэх"}
+                  {submitting
+                    ? "Түр хүлээнэ үү..."
+                    : isOtpSent
+                      ? "Код баталгаажуулж нэвтрэх"
+                      : "Нэвтрэх"}
                 </button>
               </form>
             )}

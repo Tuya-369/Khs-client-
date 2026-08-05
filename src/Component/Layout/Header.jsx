@@ -174,6 +174,7 @@ export default function Header() {
                 >
                   Profile
                 </Link>
+
                 <button
                   type="button"
                   onClick={handleLogout}

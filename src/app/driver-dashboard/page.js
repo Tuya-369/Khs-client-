@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Camera, Check, ChevronDown, Send, X } from "lucide-react";
+import { Camera, Check, ChevronDown, Search, Send, X } from "lucide-react";
 import { ApiError, api } from "@/lib/api";
 import { clearSession, getAccessToken } from "@/lib/session";
 import DashboardProfileCard from "@/Component/common/DashboardProfileCard";
@@ -11,6 +11,7 @@ export function DriverDashboardContent({ embedded = false }) {
   const router = useRouter();
   const [profile, setProfile] = useState(null);
   const [vehicles, setVehicles] = useState([]);
+  const [vehicleSearch, setVehicleSearch] = useState("");
   const [activeCarId, setActiveCarId] = useState("");
   const [selectedPartIds, setSelectedPartIds] = useState([]);
   const [openCategoryIds, setOpenCategoryIds] = useState([]);
@@ -26,6 +27,39 @@ export function DriverDashboardContent({ embedded = false }) {
     () => vehicles.find((vehicle) => vehicle.id === activeCarId),
     [vehicles, activeCarId],
   );
+
+  const filteredVehicles = useMemo(() => {
+    const query = vehicleSearch.trim().toLocaleLowerCase();
+    if (!query) return vehicles;
+
+    return vehicles.filter((vehicle) => {
+      const vehicleMatches = [vehicle.name, vehicle.plate].some((value) =>
+        String(value || "")
+          .toLocaleLowerCase()
+          .includes(query),
+      );
+      const partMatches = vehicle.partCategories?.some((category) =>
+        [
+          category.name,
+          ...(category.parts || []).map((part) => part.name),
+        ].some((value) =>
+          String(value || "")
+            .toLocaleLowerCase()
+            .includes(query),
+        ),
+      );
+
+      return vehicleMatches || partMatches;
+    });
+  }, [vehicleSearch, vehicles]);
+
+  const matchesVehicleSearch = (value) =>
+    String(value || "")
+      .toLocaleLowerCase()
+      .includes(vehicleSearch.trim().toLocaleLowerCase());
+
+  const matchesCarSearch = (car) =>
+    [car.name, car.plate].some(matchesVehicleSearch);
 
   const statusLabel = (status) => {
     if (status === "APPROVED") return "Батлагдсан";
@@ -285,8 +319,22 @@ export function DriverDashboardContent({ embedded = false }) {
             </p>
           </div>
 
+          <div className="relative">
+            <Search
+              size={17}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            />
+            <input
+              type="search"
+              value={vehicleSearch}
+              onChange={(event) => setVehicleSearch(event.target.value)}
+              placeholder="Машины нэр, улсын дугаар, сэлбэгээр хайх"
+              className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200"
+            />
+          </div>
+
           <div className="space-y-2.5">
-            {vehicles.map((car) => (
+            {filteredVehicles.map((car) => (
               <div
                 key={car.id}
                 className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs transition-all"
@@ -316,58 +364,77 @@ export function DriverDashboardContent({ embedded = false }) {
 
                 {activeCarId === car.id && (
                   <div className="p-4 space-y-2 bg-slate-50/50 border-t border-slate-100">
-                    {car.partCategories?.map((category) => {
-                      const isOpen = openCategoryIds.includes(category.id);
+                    {car.partCategories
+                      ?.filter(
+                        (category) =>
+                          !vehicleSearch.trim() ||
+                          matchesCarSearch(car) ||
+                          matchesVehicleSearch(category.name) ||
+                          category.parts?.some((part) =>
+                            matchesVehicleSearch(part.name),
+                          ),
+                      )
+                      .map((category) => {
+                        const isOpen = openCategoryIds.includes(category.id);
+                        const showAllCategoryParts =
+                          !vehicleSearch.trim() ||
+                          matchesCarSearch(car) ||
+                          matchesVehicleSearch(category.name);
+                        const visibleParts = showAllCategoryParts
+                          ? category.parts
+                          : category.parts.filter((part) =>
+                              matchesVehicleSearch(part.name),
+                            );
 
-                      return (
-                        <div
-                          key={category.id}
-                          className="rounded-lg border border-slate-200 bg-white overflow-hidden"
-                        >
-                          <button
-                            type="button"
-                            onClick={() => toggleCategory(category.id)}
-                            className="w-full flex items-center justify-between gap-3 px-3.5 py-3 text-left text-xs font-bold text-slate-800 hover:bg-slate-50"
+                        return (
+                          <div
+                            key={category.id}
+                            className="rounded-lg border border-slate-200 bg-white overflow-hidden"
                           >
-                            <span>{category.name}</span>
-                            <ChevronDown
-                              size={16}
-                              className={`text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
-                            />
-                          </button>
-                          {isOpen && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 border-t border-slate-100 p-3">
-                              {category.parts.map((part) => {
-                                const isSelected = selectedPartIds.includes(
-                                  part.id,
-                                );
-                                return (
-                                  <label
-                                    key={part.id}
-                                    className={`flex items-center gap-2.5 rounded-md border px-3 py-2.5 text-xs font-medium cursor-pointer transition ${isSelected ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 text-slate-700 hover:border-slate-400"}`}
-                                  >
-                                    <input
-                                      type="checkbox"
-                                      checked={isSelected}
-                                      onChange={() => togglePart(part.id)}
-                                      className="sr-only"
-                                    />
-                                    <span
-                                      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${isSelected ? "border-white bg-white text-slate-900" : "border-slate-300"}`}
+                            <button
+                              type="button"
+                              onClick={() => toggleCategory(category.id)}
+                              className="w-full flex items-center justify-between gap-3 px-3.5 py-3 text-left text-xs font-bold text-slate-800 hover:bg-slate-50"
+                            >
+                              <span>{category.name}</span>
+                              <ChevronDown
+                                size={16}
+                                className={`text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                              />
+                            </button>
+                            {isOpen && (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 border-t border-slate-100 p-3">
+                                {visibleParts.map((part) => {
+                                  const isSelected = selectedPartIds.includes(
+                                    part.id,
+                                  );
+                                  return (
+                                    <label
+                                      key={part.id}
+                                      className={`flex items-center gap-2.5 rounded-md border px-3 py-2.5 text-xs font-medium cursor-pointer transition ${isSelected ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 text-slate-700 hover:border-slate-400"}`}
                                     >
-                                      {isSelected && (
-                                        <Check size={12} strokeWidth={3} />
-                                      )}
-                                    </span>
-                                    {part.name}
-                                  </label>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                                      <input
+                                        type="checkbox"
+                                        checked={isSelected}
+                                        onChange={() => togglePart(part.id)}
+                                        className="sr-only"
+                                      />
+                                      <span
+                                        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${isSelected ? "border-white bg-white text-slate-900" : "border-slate-300"}`}
+                                      >
+                                        {isSelected && (
+                                          <Check size={12} strokeWidth={3} />
+                                        )}
+                                      </span>
+                                      {part.name}
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                   </div>
                 )}
               </div>
@@ -378,6 +445,14 @@ export function DriverDashboardContent({ embedded = false }) {
                 Танд оноогдсон тээврийн хэрэгсэл алга.
               </div>
             )}
+
+            {!loading &&
+              vehicles.length > 0 &&
+              filteredVehicles.length === 0 && (
+                <div className="p-4 bg-white border border-slate-200 rounded-xl text-sm text-slate-500">
+                  Тохирох тээврийн хэрэгсэл эсвэл сэлбэг олдсонгүй.
+                </div>
+              )}
           </div>
         </div>
 

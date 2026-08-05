@@ -8,6 +8,7 @@ import { clearSession, getAccessToken, saveSession } from "@/lib/session";
 
 import EditableField from "./components/EditableField";
 import AdminDashboard from "./components/AdminDashboard";
+import AdminPanel from "./components/AdminPanel";
 import { getProfileInitials } from "./helpers";
 import { DriverDashboardContent } from "../driver-dashboard/page";
 
@@ -162,18 +163,19 @@ export default function ProfilePage() {
     );
   }
 
-  const hasDashboard = ["ADMIN", "DRIVER", "TOKEN_MANAGER"].includes(
-    user?.role,
-  );
+  const hasDashboard = [
+    "ADMIN",
+    "ADMIN_PANEL",
+    "DRIVER",
+    "TOKEN_MANAGER",
+  ].includes(user?.role);
   const confirmedMerchOrders = merchOrders.filter(
     (order) => order?.status === "CONFIRMED",
   );
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900 antialiased p-4 sm:p-6">
-      <div
-        className={`${hasDashboard ? "max-w-4xl" : "max-w-md"} mx-auto space-y-6`}
-      >
+      <div className="mx-auto max-w-4xl space-y-6">
         {errorMessage && (
           <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
             {errorMessage}
@@ -228,11 +230,13 @@ export default function ProfilePage() {
                 <p className="text-xs text-red-400 font-medium">
                   {user?.role === "ADMIN"
                     ? "Админ"
-                    : user?.role === "TOKEN_MANAGER"
-                      ? "Токен менежер"
-                      : user?.role === "DRIVER"
-                        ? "Жолооч"
-                        : "Ажилтан"}
+                    : user?.role === "ADMIN_PANEL"
+                      ? "Admin Panel"
+                      : user?.role === "TOKEN_MANAGER"
+                        ? "Токен менежер"
+                        : user?.role === "DRIVER"
+                          ? "Жолооч"
+                          : "Ажилтан"}
                 </p>
               </div>
               <button
@@ -337,9 +341,10 @@ export default function ProfilePage() {
         )}
 
         {user?.role === "DRIVER" && <DriverDashboardContent embedded />}
-        {user?.role !== "DRIVER" && hasDashboard && (
-          <AdminDashboard currentUser={user} />
-        )}
+        {user?.role === "ADMIN_PANEL" && <AdminPanel />}
+        {user?.role !== "DRIVER" &&
+          hasDashboard &&
+          user?.role !== "ADMIN_PANEL" && <AdminDashboard currentUser={user} />}
       </div>
     </div>
   );

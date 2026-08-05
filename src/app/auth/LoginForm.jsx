@@ -203,6 +203,7 @@ export default function LoginForm() {
   const [submitting, setSubmitting] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isOtpSent, setIsOtpSent] = useState(false);
+  const [otpToken, setOtpToken] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [secondsLeft, setSecondsLeft] = useState(0);
 
@@ -226,7 +227,15 @@ export default function LoginForm() {
     setErrorMessage("");
 
     try {
-      await api.login(loginData);
+      const response = await api.login(loginData);
+      const nextOtpToken = response?.data?.otpToken;
+
+      if (!nextOtpToken) {
+        throw new Error("OTP сесс токен олдсонгүй.");
+      }
+
+      setOtpToken(nextOtpToken);
+      setOtpCode("");
       setIsOtpSent(true);
       setSecondsLeft(60);
     } catch (error) {
@@ -247,7 +256,7 @@ export default function LoginForm() {
 
     try {
       const response = await api.verifyOtp({
-        sapId: loginData.sapId,
+        otpToken,
         code: otpCode,
       });
       const accessToken = response?.data?.accessToken;

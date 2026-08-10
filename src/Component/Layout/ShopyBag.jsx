@@ -153,13 +153,6 @@ export default function ShopyBag({ isOpen, onClose }) {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <Link
-                href="/"
-                onClick={onClose}
-                className="rounded-lg border border-neutral-300 px-3 py-2 text-center text-sm font-semibold text-neutral-800 transition-colors hover:bg-neutral-100"
-              >
-                Ы
-              </Link>
               <button
                 type="button"
                 onClick={handleCheckout}

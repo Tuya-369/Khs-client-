@@ -226,6 +226,12 @@ export const api = {
       token,
       body: { status },
     }),
+  claimOrder: (token, id, assignedUserId) =>
+    apiRequest(`/api/requests/${id}/claim`, {
+      method: "PATCH",
+      token,
+      body: { assignedUserId, status: "SEARCHING" },
+    }),
   markRequestRead: (token, id) =>
     apiRequest(`/api/requests/${id}/read`, { method: "PATCH", token }),
 
@@ -288,8 +294,32 @@ export const api = {
     apiRequest(`/api/merch-orders/${id}/confirm`, { method: "PATCH", token }),
   rejectOrder: (token, id) =>
     apiRequest(`/api/merch-orders/${id}/reject`, { method: "PATCH", token }),
+  claimMerchOrder: (token, id, assignedUserId) =>
+    apiRequest(`/api/merch-orders/${id}/claim`, {
+      method: "PATCH",
+      token,
+      body: { assignedUserId, status: "SEARCHING" },
+    }),
+  updateMerchOrderStatus: (token, id, status) =>
+    apiRequest(`/api/merch-orders/${id}/status`, {
+      method: "PATCH",
+      token,
+      body: { status },
+    }),
   markOrderRead: (token, id) =>
     apiRequest(`/api/merch-orders/${id}/read`, { method: "PATCH", token }),
+
+  getCalendarNotes: (token) => apiRequest("/api/calendar/notes", { token }),
+  createCalendarNote: (token, body) =>
+    apiRequest("/api/calendar/notes", { method: "POST", token, body }),
+  updateCalendarNote: (token, id, done) =>
+    apiRequest(`/api/calendar/notes/${id}`, {
+      method: "PATCH",
+      token,
+      body: { done },
+    }),
+  deleteCalendarNote: (token, id) =>
+    apiRequest(`/api/calendar/notes/${id}`, { method: "DELETE", token }),
 
   getAdminSummary: (token) =>
     apiRequest("/api/dashboard/admin-summary", { token }),

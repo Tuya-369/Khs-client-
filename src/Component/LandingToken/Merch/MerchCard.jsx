@@ -3,10 +3,32 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { api } from "@/lib/api";
 
 let merchItemsCache = null;
 let merchItemsRequest = null;
+
+const getItemCategory = (item) => {
+  const apiCategory = String(item.category || "")
+    .toLowerCase()
+    .trim();
+
+  if (["giftcard", "gift-card", "gift_card"].includes(apiCategory)) {
+    return "giftcard";
+  }
+
+  if (apiCategory === "merch") {
+    return "merch";
+  }
+
+  const itemText =
+    `${item.title || ""} ${item.description || ""} ${item.longDescription || ""}`.toLowerCase();
+
+  return /gift\s*card|бэлгийн карт|эрхийн бичиг|ваучер|талон/.test(itemText)
+    ? "giftcard"
+    : "merch";
+};
 
 const loadMerchItems = async () => {
   if (merchItemsCache) {
@@ -33,9 +55,10 @@ export default function MerchCard({
   excludeItemId,
   embedded = false,
   itemLimit,
-  showViewAll = true,
 }) {
   const [items, setItems] = useState([]);
+  const [category, setCategory] = useState("all");
+  const pathname = usePathname();
 
   useEffect(() => {
     let isMounted = true;
@@ -59,11 +82,16 @@ export default function MerchCard({
   }, []);
 
   const visibleItems = useMemo(() => {
-    const filteredItems = items.filter((item) => item.id !== excludeItemId);
+    const filteredItems = items.filter((item) => {
+      if (item.id === excludeItemId) return false;
+
+      return category === "all" || getItemCategory(item) === category;
+    });
+
     return Number.isFinite(itemLimit)
       ? filteredItems.slice(0, itemLimit)
       : filteredItems;
-  }, [items, excludeItemId, itemLimit]);
+  }, [items, category, excludeItemId, itemLimit]);
 
   const sectionClassName = embedded
     ? "w-full px-0 py-0 text-neutral-800"
@@ -98,14 +126,42 @@ export default function MerchCard({
             </p>
           )}
         </div>
-        {!hideTopTexts && showViewAll && (
-          <Link
-            href="/merch"
-            className="text-sm font-medium text-neutral-500 transition-colors hover:text-yellow-400"
-          >
-            Бүгдийг үзэх &rarr;
-          </Link>
-        )}
+        <div
+          className="flex items-center gap-4"
+          aria-label="Бүтээгдэхүүний ангилал"
+        >
+          {[
+            ["all", "Бүгд"],
+            ["merch", "Merch"],
+            ["giftcard", "Gift card"],
+          ].map(([value, label]) => {
+            const isActive = category === value;
+            const className = `border-b-2 px-0.5 py-1.5 text-xs font-medium transition-colors sm:text-sm ${
+              isActive
+                ? "border-neutral-900 text-neutral-900"
+                : "border-transparent text-neutral-400 hover:text-neutral-900"
+            }`;
+
+            if (value === "all" && pathname !== "/merch") {
+              return (
+                <Link key={value} href="/merch" className={className}>
+                  {label}
+                </Link>
+              );
+            }
+
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setCategory(value)}
+                className={className}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* kart*/}

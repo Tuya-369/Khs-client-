@@ -3,69 +3,48 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import { api } from "@/lib/api";
+
+// Cloudinary болон гадны URL-уудыг энд шууд байршуулна
+const SLIDES = [
+  {
+    id: 1,
+    image:
+      "https://res.cloudinary.com/hfroefns/image/upload/v1786070347/bluefin_t61cw2.png",
+    title: "Bluefin",
+  },
+  {
+    id: 2,
+    image:
+      "https://res.cloudinary.com/hfroefns/image/upload/v1786070347/oyut_brhpie.jpg",
+    title: "oyut",
+  },
+  {
+    id: 3,
+    image:
+      "https://res.cloudinary.com/hfroefns/image/upload/v1786070346/we_are_miners_mmlj8t.jpg",
+    title: "Miners",
+  },
+];
 
 export default function HeroSlider() {
-  const [slides, setSlides] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [touchStartX, setTouchStartX] = useState(null);
 
   const goToPrevious = useCallback(() => {
-    setCurrentIndex((prev) =>
-      prev === 0 ? Math.max(slides.length - 1, 0) : prev - 1,
-    );
-  }, [slides.length]);
-
-  const goToNext = useCallback(() => {
-    if (slides.length === 0) return;
-    setCurrentIndex((prev) => (prev + 1) % slides.length);
-  }, [slides.length]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadSlides = async () => {
-      try {
-        const response = await api.getMerchItems();
-        const items = Array.isArray(response?.data) ? response.data : [];
-        const mappedSlides = items
-          .filter((item) => typeof item.imageUrl === "string" && item.imageUrl)
-          .slice(0, 6)
-          .map((item) => ({
-            id: item.id,
-            image: item.imageUrl,
-            title: item.title,
-            subtitle: item.description || "",
-          }));
-
-        if (!isMounted) return;
-        setSlides(mappedSlides);
-      } catch {
-        if (!isMounted) return;
-        setSlides([]);
-      }
-    };
-
-    loadSlides();
-
-    return () => {
-      isMounted = false;
-    };
+    setCurrentIndex((prev) => (prev === 0 ? SLIDES.length - 1 : prev - 1));
   }, []);
 
+  const goToNext = useCallback(() => {
+    setCurrentIndex((prev) => (prev + 1) % SLIDES.length);
+  }, []);
+
+  // 5 секунд тутамд автоматаар солигдох
   useEffect(() => {
-    if (slides.length === 0) return;
     const timer = setInterval(() => {
       goToNext();
-    }, 20000);
+    }, 5000);
     return () => clearInterval(timer);
-  }, [slides.length, goToNext]);
-
-  if (slides.length === 0) {
-    return null;
-  }
-
-  const activeSlide = slides[currentIndex] || slides[0];
+  }, [goToNext]);
 
   const handleTouchStart = (event) => {
     setTouchStartX(event.touches[0]?.clientX ?? null);
@@ -87,8 +66,10 @@ export default function HeroSlider() {
     setTouchStartX(null);
   };
 
+  const currentSlide = SLIDES[currentIndex];
+
   return (
-    <section className="relative w-full overflow-hidden px-3 py-4 sm:px-6 sm:py-6 md:px-10 md:py-8">
+    <section className="relative w-full overflow-hidden">
       <div
         className="group relative mx-auto h-112 w-full max-w-6xl overflow-hidden rounded-2xl sm:h-128 md:h-144 md:rounded-3xl"
         onTouchStart={handleTouchStart}
@@ -96,59 +77,28 @@ export default function HeroSlider() {
       >
         <AnimatePresence mode="wait">
           <motion.div
-            key={activeSlide.id}
+            key={currentSlide.id}
             initial={{ opacity: 0, scale: 1.02 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="relative flex h-full w-full items-end"
+            className="relative h-full w-full"
           >
             <Image
-              src={activeSlide.image}
-              alt={activeSlide.title || "Merch banner"}
+              src={currentSlide.image}
+              alt={currentSlide.title}
               fill
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 92vw, 1200px"
               unoptimized
-              className="absolute inset-0 h-full w-full select-none object-cover"
+              sizes="(max-width: fi) 100vw, (max-width: 1024px) 92vw, 1200px"
+              className="select-none object-cover"
               priority={currentIndex === 0}
             />
-
-            <div className="absolute inset-0 bg-linear-to-t from-neutral-900/85 via-neutral-900/45 to-transparent md:bg-linear-to-r md:from-neutral-900/75 md:via-neutral-900/35 md:to-transparent" />
-
-            <div className="relative z-10 w-full max-w-2xl px-4 pb-14 pt-10 text-white sm:px-6 sm:pb-16 md:px-10 md:pb-20 lg:px-14">
-              <motion.h1
-                initial={{ y: 15, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.2, duration: 0.5 }}
-                className="text-2xl font-black leading-tight tracking-tight sm:text-3xl md:text-4xl lg:text-5xl"
-              >
-                {slides[currentIndex].title}
-              </motion.h1>
-              <motion.p
-                initial={{ y: 15, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.3, duration: 0.5 }}
-                className="mt-2 max-w-xl text-sm font-light text-neutral-200 sm:text-base md:text-lg"
-              >
-                {slides[currentIndex].subtitle}
-              </motion.p>
-
-              <motion.div
-                initial={{ y: 15, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.4, duration: 0.5 }}
-                className="mt-4 space-y-3"
-              >
-                <button className="rounded-xl bg-linear-to-r from-amber-500 to-orange-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/20 transition-all duration-200 hover:scale-105 active:scale-95 sm:px-6 sm:py-3">
-                  Дэлгэрэнгүй үзэх
-                </button>
-              </motion.div>
-            </div>
           </motion.div>
         </AnimatePresence>
 
+        {/* Доод талын цэгүүд (Pagination dots) */}
         <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 gap-2 sm:bottom-6">
-          {slides.map((_, index) => (
+          {SLIDES.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentIndex(index)}
@@ -159,16 +109,17 @@ export default function HeroSlider() {
                 className={`h-2 rounded-full transition-all duration-300 ${
                   index === currentIndex
                     ? "w-8 bg-orange-500"
-                    : "w-2 bg-white/55 group-hover:bg-white"
+                    : "w-2 bg-white/60 group-hover:bg-white"
                 }`}
               />
             </button>
           ))}
         </div>
 
+        {/* Мобайл сумнууд */}
         <button
           onClick={goToPrevious}
-          className="absolute bottom-3 left-3 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-white/25 bg-black/20 text-white backdrop-blur-sm transition-all duration-200 hover:bg-white hover:text-neutral-900 md:bottom-auto md:left-3 md:top-1/2 md:hidden md:-translate-y-1/2"
+          className="absolute bottom-3 left-3 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-all duration-200 hover:bg-white hover:text-black md:hidden"
           aria-label="Previous slide mobile"
         >
           ❮
@@ -176,22 +127,24 @@ export default function HeroSlider() {
 
         <button
           onClick={goToNext}
-          className="absolute bottom-3 right-3 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-white/25 bg-black/20 text-white backdrop-blur-sm transition-all duration-200 hover:bg-white hover:text-neutral-900 md:bottom-auto md:right-3 md:top-1/2 md:hidden md:-translate-y-1/2"
+          className="absolute bottom-3 right-3 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-all duration-200 hover:bg-white hover:text-black md:hidden"
           aria-label="Next slide mobile"
         >
           ❯
         </button>
 
+        {/* Десктоп сумнууд */}
         <button
           onClick={goToPrevious}
-          className="absolute left-3 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-md transition-all duration-200 hover:bg-white hover:text-neutral-900 group-hover:opacity-100 md:flex md:opacity-70"
+          className="absolute left-3 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-md transition-all duration-200 hover:bg-white hover:text-black group-hover:opacity-100 md:flex md:opacity-70"
           aria-label="Previous slide"
         >
           ❮
         </button>
+
         <button
           onClick={goToNext}
-          className="absolute right-3 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-md transition-all duration-200 hover:bg-white hover:text-neutral-900 group-hover:opacity-100 md:flex md:opacity-70"
+          className="absolute right-3 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-md transition-all duration-200 hover:bg-white hover:text-black group-hover:opacity-100 md:flex md:opacity-70"
           aria-label="Next slide"
         >
           ❯

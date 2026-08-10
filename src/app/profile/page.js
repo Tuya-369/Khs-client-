@@ -1,20 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError, api } from "@/lib/api";
 import { clearSession, getAccessToken, saveSession } from "@/lib/session";
 
-import EditableField from "./components/EditableField";
 import AdminDashboard from "./components/AdminDashboard";
 import AdminPanel from "./components/AdminPanel";
-import { getProfileInitials } from "./helpers";
+import ProfileSidebar from "./components/ProfileSidebar";
 import { DriverDashboardContent } from "../driver-dashboard/page";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const avatarInputRef = useRef(null);
 
   const [user, setUser] = useState(null);
   const [merchOrders, setMerchOrders] = useState([]);
@@ -115,8 +112,7 @@ export default function ProfilePage() {
         phoneNumber: form.phoneNumber?.trim() || "",
       };
 
-      // Data URL is for local preview; backend usually expects a persistent URL or separate upload API.
-      if (form.profileImage && !String(form.profileImage).startsWith("data:")) {
+      if (form.profileImage) {
         payload.profileImage = form.profileImage;
         payload.avatarUrl = form.profileImage;
       }
@@ -169,13 +165,10 @@ export default function ProfilePage() {
     "DRIVER",
     "TOKEN_MANAGER",
   ].includes(user?.role);
-  const confirmedMerchOrders = merchOrders.filter(
-    (order) => order?.status === "CONFIRMED",
-  );
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-900 antialiased p-4 sm:p-6">
-      <div className="mx-auto max-w-4xl space-y-6">
+    <div className="min-h-screen bg-[#F8FAFC] p-2 text-slate-900 antialiased sm:p-4 lg:p-6">
+      <div className="mx-auto max-w-7xl space-y-3 sm:space-y-4 lg:space-y-6">
         {errorMessage && (
           <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
             {errorMessage}
@@ -194,157 +187,31 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* Хэрэглэгчийн Профайл Карт */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-4">
-          <div
-            className="relative group cursor-pointer shrink-0"
-            onClick={() => avatarInputRef.current?.click()}
-          >
-            <div className="relative w-16 h-16 rounded-full border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden">
-              {form.profileImage ? (
-                <Image
-                  src={form.profileImage}
-                  alt="Profile"
-                  fill
-                  unoptimized
-                  className="object-cover"
-                />
-              ) : (
-                <span className="text-sm font-bold text-slate-500">
-                  {getProfileInitials(user)}
-                </span>
+        <div className="grid gap-3 lg:grid-cols-12 lg:gap-6">
+          <div className="lg:col-span-4">
+            <ProfileSidebar
+              user={user}
+              merchOrders={merchOrders}
+              form={form}
+              setForm={setForm}
+              isEditing={isEditing}
+              setIsEditing={setIsEditing}
+              saving={saving}
+              handleSave={handleSave}
+              handleAvatarChange={handleAvatarChange}
+            />
+          </div>
+
+          <main className="space-y-3 lg:col-span-8 lg:space-y-6">
+            {user?.role === "DRIVER" && <DriverDashboardContent embedded />}
+            {user?.role === "ADMIN_PANEL" && <AdminPanel />}
+            {user?.role !== "DRIVER" &&
+              hasDashboard &&
+              user?.role !== "ADMIN_PANEL" && (
+                <AdminDashboard currentUser={user} />
               )}
-            </div>
-          </div>
-          <input
-            ref={avatarInputRef}
-            type="file"
-            className="hidden"
-            onChange={handleAvatarChange}
-          />
-
-          <div className="flex-1 text-center sm:text-left space-y-1 w-full">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <h1 className="text-base font-bold text-slate-900">{`${user?.lastName || ""} ${user?.firstName || ""}`}</h1>
-                <p className="text-xs text-red-400 font-medium">
-                  {user?.role === "ADMIN"
-                    ? "Админ"
-                    : user?.role === "ADMIN_PANEL"
-                      ? "Admin Panel"
-                      : user?.role === "TOKEN_MANAGER"
-                        ? "Токен менежер"
-                        : user?.role === "DRIVER"
-                          ? "Жолооч"
-                          : "Ажилтан"}
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  if (isEditing) {
-                    setForm({
-                      lastName: user?.lastName || "",
-                      firstName: user?.firstName || "",
-                      phoneNumber: user?.phoneNumber || "",
-                      profileImage: user?.profileImage || user?.avatarUrl || "",
-                    });
-                    setMessage({ type: "", text: "" });
-                  }
-                  setIsEditing(!isEditing);
-                }}
-                className="text-xs font-semibold text-slate-400 hover:text-slate-900 transition"
-              >
-                {isEditing ? "Болих" : "Засах"}
-              </button>
-            </div>
-
-            <div className="pt-3 space-y-2">
-              <EditableField
-                label="Овог"
-                value={form.lastName}
-                onChange={(v) => setForm((p) => ({ ...p, lastName: v }))}
-                isEditing={isEditing}
-              />
-              <EditableField
-                label="Нэр"
-                value={form.firstName}
-                onChange={(v) => setForm((p) => ({ ...p, firstName: v }))}
-                isEditing={isEditing}
-              />
-              <EditableField
-                label="SAP ID"
-                value={user?.sapId}
-                isEditing={false}
-              />
-              <EditableField
-                label="Утас"
-                value={form.phoneNumber}
-                onChange={(v) => setForm((p) => ({ ...p, phoneNumber: v }))}
-                isEditing={isEditing}
-              />
-            </div>
-
-            {isEditing && (
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="mt-3 w-full py-2 text-xs font-bold bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition"
-              >
-                {saving ? "Хадгалж байна..." : "Хадгалах"}
-              </button>
-            )}
-          </div>
+          </main>
         </div>
-
-        {confirmedMerchOrders.length > 0 && (
-          <section className="bg-white rounded-2xl border border-emerald-200 p-5 shadow-xs space-y-4">
-            <div>
-              <h2 className="text-sm font-bold text-slate-900">
-                Таны батлагдсан бараа
-              </h2>
-              <p className="mt-1 text-xs text-emerald-700">
-                Таны барааг баталлаа. Тантай удахгүй холбогдох болно.
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              {confirmedMerchOrders.map((order) => (
-                <div
-                  key={order.id}
-                  className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3"
-                >
-                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-white">
-                    {order?.merchItem?.imageUrl ? (
-                      <Image
-                        src={order.merchItem.imageUrl}
-                        alt={order.merchItem.title || "Merch"}
-                        fill
-                        sizes="56px"
-                        unoptimized
-                        className="object-contain"
-                      />
-                    ) : null}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-bold text-slate-900">
-                      {order?.merchItem?.title || "Бараа"}
-                    </p>
-                    <p className="mt-1 text-[11px] text-slate-500">
-                      Хэмжээ: {order?.size || "-"} | Өнгө: {order?.color || "-"}{" "}
-                      | Тоо: {order?.qty ?? "-"}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {user?.role === "DRIVER" && <DriverDashboardContent embedded />}
-        {user?.role === "ADMIN_PANEL" && <AdminPanel />}
-        {user?.role !== "DRIVER" &&
-          hasDashboard &&
-          user?.role !== "ADMIN_PANEL" && <AdminDashboard currentUser={user} />}
       </div>
     </div>
   );

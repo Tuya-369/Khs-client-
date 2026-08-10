@@ -12,6 +12,7 @@ export function DriverDashboardContent({ embedded = false }) {
   const [profile, setProfile] = useState(null);
   const [vehicles, setVehicles] = useState([]);
   const [vehicleSearch, setVehicleSearch] = useState("");
+  const [showVehicleList, setShowVehicleList] = useState(false);
   const [activeCarId, setActiveCarId] = useState("");
   const [selectedPartIds, setSelectedPartIds] = useState([]);
   const [openCategoryIds, setOpenCategoryIds] = useState([]);
@@ -111,10 +112,6 @@ export function DriverDashboardContent({ embedded = false }) {
       const loadedVehicles = optionsResponse?.data || [];
       setVehicles(loadedVehicles);
       setSubmittedOrders(myRequestsResponse?.data || []);
-
-      if (loadedVehicles.length > 0) {
-        setActiveCarId((prev) => prev || loadedVehicles[0].id);
-      }
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
         clearSession();
@@ -132,13 +129,9 @@ export function DriverDashboardContent({ embedded = false }) {
     const loadTimer = window.setTimeout(() => {
       void loadDashboardData();
     }, 0);
-    const refreshTimer = window.setInterval(() => {
-      void loadDashboardData();
-    }, 15_000);
 
     return () => {
       window.clearTimeout(loadTimer);
-      window.clearInterval(refreshTimer);
     };
   }, [loadDashboardData]);
 
@@ -319,141 +312,152 @@ export function DriverDashboardContent({ embedded = false }) {
             </p>
           </div>
 
-          <div className="relative">
-            <Search
-              size={17}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-            />
-            <input
-              type="search"
-              value={vehicleSearch}
-              onChange={(event) => setVehicleSearch(event.target.value)}
-              placeholder="Машины нэр, улсын дугаар, сэлбэгээр хайх"
-              className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200"
-            />
+          <div className="flex gap-2">
+            <div className="relative min-w-0 flex-1">
+              <Search
+                size={17}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+              <input
+                type="search"
+                value={vehicleSearch}
+                onChange={(event) => setVehicleSearch(event.target.value)}
+                placeholder="Машины нэр, улсын дугаар, сэлбэгээр хайх"
+                className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowVehicleList((current) => !current)}
+              className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+            >
+              {showVehicleList ? "Жагсаалт нуух" : "Бүх машин харах"}
+            </button>
           </div>
 
-          <div className="space-y-2.5">
-            {filteredVehicles.map((car) => (
-              <div
-                key={car.id}
-                className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs transition-all"
-              >
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveCarId(activeCarId === car.id ? "" : car.id);
-                    setSelectedPartIds([]);
-                    setOpenCategoryIds([]);
-                  }}
-                  className="w-full text-left p-4 sm:p-5 font-medium flex justify-between items-center hover:bg-slate-50/50 active:bg-slate-50 transition"
+          {(showVehicleList || vehicleSearch.trim()) && (
+            <div className="space-y-2.5">
+              {filteredVehicles.map((car) => (
+                <div
+                  key={car.id}
+                  className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs transition-all"
                 >
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-slate-900 font-bold text-sm sm:text-base">
-                      {car.name}
-                    </span>
-                    <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-mono font-semibold">
-                      {car.plate}
-                    </span>
-                  </div>
-                  <ChevronDown
-                    size={18}
-                    className={`shrink-0 text-slate-400 transition-transform ${activeCarId === car.id ? "rotate-180" : ""}`}
-                  />
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveCarId(activeCarId === car.id ? "" : car.id);
+                      setSelectedPartIds([]);
+                      setOpenCategoryIds([]);
+                    }}
+                    className="w-full text-left p-4 sm:p-5 font-medium flex justify-between items-center hover:bg-slate-50/50 active:bg-slate-50 transition"
+                  >
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-slate-900 font-bold text-sm sm:text-base">
+                        {car.name}
+                      </span>
+                      <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-mono font-semibold">
+                        {car.plate}
+                      </span>
+                    </div>
+                    <ChevronDown
+                      size={18}
+                      className={`shrink-0 text-slate-400 transition-transform ${activeCarId === car.id ? "rotate-180" : ""}`}
+                    />
+                  </button>
 
-                {activeCarId === car.id && (
-                  <div className="p-4 space-y-2 bg-slate-50/50 border-t border-slate-100">
-                    {car.partCategories
-                      ?.filter(
-                        (category) =>
-                          !vehicleSearch.trim() ||
-                          matchesCarSearch(car) ||
-                          matchesVehicleSearch(category.name) ||
-                          category.parts?.some((part) =>
-                            matchesVehicleSearch(part.name),
-                          ),
-                      )
-                      .map((category) => {
-                        const isOpen = openCategoryIds.includes(category.id);
-                        const showAllCategoryParts =
-                          !vehicleSearch.trim() ||
-                          matchesCarSearch(car) ||
-                          matchesVehicleSearch(category.name);
-                        const visibleParts = showAllCategoryParts
-                          ? category.parts
-                          : category.parts.filter((part) =>
+                  {activeCarId === car.id && (
+                    <div className="p-4 space-y-2 bg-slate-50/50 border-t border-slate-100">
+                      {car.partCategories
+                        ?.filter(
+                          (category) =>
+                            !vehicleSearch.trim() ||
+                            matchesCarSearch(car) ||
+                            matchesVehicleSearch(category.name) ||
+                            category.parts?.some((part) =>
                               matchesVehicleSearch(part.name),
-                            );
+                            ),
+                        )
+                        .map((category) => {
+                          const isOpen = openCategoryIds.includes(category.id);
+                          const showAllCategoryParts =
+                            !vehicleSearch.trim() ||
+                            matchesCarSearch(car) ||
+                            matchesVehicleSearch(category.name);
+                          const visibleParts = showAllCategoryParts
+                            ? category.parts
+                            : category.parts.filter((part) =>
+                                matchesVehicleSearch(part.name),
+                              );
 
-                        return (
-                          <div
-                            key={category.id}
-                            className="rounded-lg border border-slate-200 bg-white overflow-hidden"
-                          >
-                            <button
-                              type="button"
-                              onClick={() => toggleCategory(category.id)}
-                              className="w-full flex items-center justify-between gap-3 px-3.5 py-3 text-left text-xs font-bold text-slate-800 hover:bg-slate-50"
+                          return (
+                            <div
+                              key={category.id}
+                              className="rounded-lg border border-slate-200 bg-white overflow-hidden"
                             >
-                              <span>{category.name}</span>
-                              <ChevronDown
-                                size={16}
-                                className={`text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
-                              />
-                            </button>
-                            {isOpen && (
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 border-t border-slate-100 p-3">
-                                {visibleParts.map((part) => {
-                                  const isSelected = selectedPartIds.includes(
-                                    part.id,
-                                  );
-                                  return (
-                                    <label
-                                      key={part.id}
-                                      className={`flex items-center gap-2.5 rounded-md border px-3 py-2.5 text-xs font-medium cursor-pointer transition ${isSelected ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 text-slate-700 hover:border-slate-400"}`}
-                                    >
-                                      <input
-                                        type="checkbox"
-                                        checked={isSelected}
-                                        onChange={() => togglePart(part.id)}
-                                        className="sr-only"
-                                      />
-                                      <span
-                                        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${isSelected ? "border-white bg-white text-slate-900" : "border-slate-300"}`}
+                              <button
+                                type="button"
+                                onClick={() => toggleCategory(category.id)}
+                                className="w-full flex items-center justify-between gap-3 px-3.5 py-3 text-left text-xs font-bold text-slate-800 hover:bg-slate-50"
+                              >
+                                <span>{category.name}</span>
+                                <ChevronDown
+                                  size={16}
+                                  className={`text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                                />
+                              </button>
+                              {isOpen && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 border-t border-slate-100 p-3">
+                                  {visibleParts.map((part) => {
+                                    const isSelected = selectedPartIds.includes(
+                                      part.id,
+                                    );
+                                    return (
+                                      <label
+                                        key={part.id}
+                                        className={`flex items-center gap-2.5 rounded-md border px-3 py-2.5 text-xs font-medium cursor-pointer transition ${isSelected ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 text-slate-700 hover:border-slate-400"}`}
                                       >
-                                        {isSelected && (
-                                          <Check size={12} strokeWidth={3} />
-                                        )}
-                                      </span>
-                                      {part.name}
-                                    </label>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                  </div>
-                )}
-              </div>
-            ))}
+                                        <input
+                                          type="checkbox"
+                                          checked={isSelected}
+                                          onChange={() => togglePart(part.id)}
+                                          className="sr-only"
+                                        />
+                                        <span
+                                          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${isSelected ? "border-white bg-white text-slate-900" : "border-slate-300"}`}
+                                        >
+                                          {isSelected && (
+                                            <Check size={12} strokeWidth={3} />
+                                          )}
+                                        </span>
+                                        {part.name}
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
+                </div>
+              ))}
 
-            {!loading && vehicles.length === 0 && (
-              <div className="p-4 bg-white border border-slate-200 rounded-xl text-sm text-slate-500">
-                Танд оноогдсон тээврийн хэрэгсэл алга.
-              </div>
-            )}
-
-            {!loading &&
-              vehicles.length > 0 &&
-              filteredVehicles.length === 0 && (
+              {!loading && vehicles.length === 0 && (
                 <div className="p-4 bg-white border border-slate-200 rounded-xl text-sm text-slate-500">
-                  Тохирох тээврийн хэрэгсэл эсвэл сэлбэг олдсонгүй.
+                  Танд оноогдсон тээврийн хэрэгсэл алга.
                 </div>
               )}
-          </div>
+
+              {!loading &&
+                vehicles.length > 0 &&
+                filteredVehicles.length === 0 && (
+                  <div className="p-4 bg-white border border-slate-200 rounded-xl text-sm text-slate-500">
+                    Тохирох тээврийн хэрэгсэл эсвэл сэлбэг олдсонгүй.
+                  </div>
+                )}
+            </div>
+          )}
         </div>
 
         {activeCar && (

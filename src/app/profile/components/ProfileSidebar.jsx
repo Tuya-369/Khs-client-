@@ -9,7 +9,7 @@ const roleLabels = {
   ADMIN: "Админ",
   ADMIN_PANEL: "Admin Panel",
   TOKEN_MANAGER: "Токен менежер",
-  DRIVER: "Жолооч",
+  DRIVER: "Механикч",
 };
 
 export default function ProfileSidebar({

@@ -277,7 +277,7 @@ export function DriverDashboardContent({ embedded = false }) {
           <DashboardProfileCard
             badge={profile?.firstName?.charAt(0)?.toUpperCase() || "D"}
             name={profile ? `${profile.lastName} ${profile.firstName}` : "..."}
-            subtitle="Жолооч"
+            subtitle="Механикч"
             sapId={profile?.sapId || "-"}
             totalLabel="Нийт хүсэлт"
             totalValue={submittedOrders.length}

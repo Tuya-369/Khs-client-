@@ -1,154 +1,205 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import Image from "next/image";
 
-// Cloudinary болон гадны URL-уудыг энд шууд байршуулна
-const SLIDES = [
+const PARTNERS = [
   {
-    id: 1,
-    image:
-      "https://res.cloudinary.com/hfroefns/image/upload/v1786070347/bluefin_t61cw2.png",
-    title: "Bluefin",
+    id: "Bluefin-Catering",
+    title: "Bluefin-Catering",
+    description:
+      "Оюу Толгой төслийн талбайд үйл ажиллагаа явуулдаг ба 500 гаруй чадварлаг хамт олноор багаа бүрдүүлэн өдөр бүр ойролцоогоор 15,000 орчим уурхайчдад эрүүл, амт чанартай, халуун хоолоор ханган ажилладаг.",
+    logo: "https://res.cloudinary.com/hfroefns/image/upload/v1786354835/547afbda-79c6-481f-9a14-9937da2d2d02_fitg1z.png",
+    url: "https://www.facebook.com/Bluefincatering",
   },
   {
-    id: 2,
-    image:
-      "https://res.cloudinary.com/hfroefns/image/upload/v1786070347/oyut_brhpie.jpg",
-    title: "oyut",
+    id: "we-are-miners",
+    title: "We Are Miners",
+    description:
+      "Уурхайчдын өдөр тутмын хэрэгцээт бүтээгдэхүүн, хувцас, куртка, хамгаалах хэрэгсэл, Фосфортдог каскны бүснүүд мерчантарыг худалдаг.",
+    logo: "https://res.cloudinary.com/hfroefns/image/upload/v1786350688/500763936_122134973504759573_7525755744609605248_n-removebg-preview_gjuj1r.png",
+    url: "https://www.facebook.com/profile.php?id=61572787193323",
   },
   {
-    id: 3,
-    image:
-      "https://res.cloudinary.com/hfroefns/image/upload/v1786070346/we_are_miners_mmlj8t.jpg",
-    title: "Miners",
+    id: "OYUT PIZZA UHG LLC",
+    title: "Oyut Pizza",
+    description:
+      "Оюу Толгой төслийн талбайд үйл ажиллагаа явуулдаг ба уурхайчдад зориулсан амттай пицца, хоол, ундааг хүргэдэг.",
+    logo: "https://res.cloudinary.com/hfroefns/image/upload/v1786350937/528039625_1293939149185084_471515427446860816_n-removebg-preview_vv3tbb.png",
+    url: "https://www.facebook.com/uhgllc",
   },
 ];
 
+const SLIDE_DURATION = 9000;
+
 export default function HeroSlider() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [touchStartX, setTouchStartX] = useState(null);
+  const [isPaused, setIsPaused] = useState(false);
+  const touchStartX = useRef(null);
+  const prefersReducedMotion = useReducedMotion();
 
-  const goToPrevious = useCallback(() => {
-    setCurrentIndex((prev) => (prev === 0 ? SLIDES.length - 1 : prev - 1));
-  }, []);
+  const activePartner = PARTNERS[currentIndex];
 
   const goToNext = useCallback(() => {
-    setCurrentIndex((prev) => (prev + 1) % SLIDES.length);
+    setCurrentIndex((prev) => (prev + 1) % PARTNERS.length);
   }, []);
 
-  // 5 секунд тутамд автоматаар солигдох
+  const goToPrevious = useCallback(() => {
+    setCurrentIndex((prev) => (prev === 0 ? PARTNERS.length - 1 : prev - 1));
+  }, []);
+
+  // Автомат слайд ажиллах хэсэг
   useEffect(() => {
-    const timer = setInterval(() => {
-      goToNext();
-    }, 5000);
-    return () => clearInterval(timer);
-  }, [goToNext]);
+    if (isPaused) return;
+    const interval = setInterval(goToNext, SLIDE_DURATION);
+    return () => clearInterval(interval);
+  }, [goToNext, isPaused]);
 
-  const handleTouchStart = (event) => {
-    setTouchStartX(event.touches[0]?.clientX ?? null);
+  // Гарны сумаар шилжүүлэх
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "ArrowLeft") goToPrevious();
+      if (e.key === "ArrowRight") goToNext();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [goToPrevious, goToNext]);
+
+  // Свайп хийх Touch сенсор
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0]?.clientX ?? null;
   };
 
-  const handleTouchEnd = (event) => {
-    if (touchStartX === null) return;
+  const handleTouchEnd = (e) => {
+    if (touchStartX.current === null) return;
+    const touchEndX = e.changedTouches[0]?.clientX ?? touchStartX.current;
+    const deltaX = touchStartX.current - touchEndX;
 
-    const touchEndX = event.changedTouches[0]?.clientX ?? touchStartX;
-    const deltaX = touchStartX - touchEndX;
-    const swipeThreshold = 40;
+    if (deltaX > 40) goToNext();
+    else if (deltaX < -40) goToPrevious();
 
-    if (deltaX > swipeThreshold) {
-      goToNext();
-    } else if (deltaX < -swipeThreshold) {
-      goToPrevious();
-    }
-
-    setTouchStartX(null);
+    touchStartX.current = null;
   };
-
-  const currentSlide = SLIDES[currentIndex];
 
   return (
-    <section className="relative w-full overflow-hidden">
+    <section className="w-full bg-slate-50/50 py-12 px-4 sm:px-6 lg:px-8">
       <div
-        className="group relative mx-auto h-112 w-full max-w-6xl overflow-hidden rounded-2xl sm:h-128 md:h-144 md:rounded-3xl"
+        className="relative mx-auto max-w-6xl overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-xl shadow-slate-200/50"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentSlide.id}
-            initial={{ opacity: 0, scale: 1.02 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="relative h-full w-full"
-          >
-            <Image
-              src={currentSlide.image}
-              alt={currentSlide.title}
-              fill
-              unoptimized
-              sizes="(max-width: fi) 100vw, (max-width: 1024px) 92vw, 1200px"
-              className="select-none object-cover"
-              priority={currentIndex === 0}
-            />
-          </motion.div>
-        </AnimatePresence>
+        {/* Арын дэвсгэрийн зөөлөн өнгөний уусах тусгал */}
+        <div className="absolute inset-0 pointer-events-none opacity-30 transition-colors duration-700 `bg-gradient-to-br` from-slate-50 via-white to-amber-50/30" />
 
-        {/* Доод талын цэгүүд (Pagination dots) */}
-        <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 gap-2 sm:bottom-6">
-          {SLIDES.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentIndex(index)}
-              className="group relative p-1 focus:outline-hidden"
-              aria-label={`Slide ${index + 1}`}
-            >
-              <div
-                className={`h-2 rounded-full transition-all duration-300 ${
-                  index === currentIndex
-                    ? "w-8 bg-orange-500"
-                    : "w-2 bg-white/60 group-hover:bg-white"
-                }`}
-              />
-            </button>
-          ))}
+        <div className="relative z-10 min-h-500px sm:min-h-460px flex flex-col justify-between p-6 sm:p-10 lg:p-12">
+          <div className="my-8 grid grid-cols-1 items-center gap-8 lg:grid-cols-12">
+            {/* Текст болон товчлуур */}
+            <div className="lg:col-span-7 flex flex-col items-start text-left">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activePartner.id}
+                  initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: prefersReducedMotion ? 0 : -15 }}
+                  transition={{ duration: 0.4 }}
+                  className="space-y-4"
+                >
+                  <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900">
+                    {activePartner.title}
+                  </h2>
+
+                  <p className="max-w-xl text-base leading-relaxed text-slate-600">
+                    {activePartner.description}
+                  </p>
+
+                  <div className="pt-3">
+                    {/* Сошиал/Веб хуудас руу үсрэх товч */}
+                    <a
+                      href={activePartner.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 rounded-full bg-slate-700 px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-slate-800 hover:shadow-lg active:scale-95"
+                    >
+                      <span>Дэлгэрэнгүй</span>
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                        />
+                      </svg>
+                    </a>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            {/* Лого зураг */}
+            <div className="lg:col-span-5 flex items-center justify-center">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activePartner.id}
+                  initial={{ opacity: 0, scale: 0.92 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.92 }}
+                  transition={{ duration: 0.4 }}
+                  className="relative flex h-52 w-52 sm:h-64 sm:w-64 items-center justify-center"
+                >
+                  <div className="relative h-full w-full">
+                    <Image
+                      src={activePartner.logo}
+                      alt={`${activePartner.title} лого`}
+                      fill
+                      unoptimized
+                      sizes="256px"
+                      className="object-contain"
+                    />
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </div>
+
+          {/* Доод хэсэг: Гарчиг + Таб/Индикатор болон Сумнууд */}
+          <div className="flex flex-col gap-4 border-t border-slate-100 pt-6 sm:flex-row sm:items-center sm:justify-between">
+            {/* Баруун/Зүүн шилжих табын хэсэг */}
+            <div className="flex flex-col gap-2">
+              {/* Жижиг санамж гарчиг */}
+              <p className="text-xs font-medium text-slate-500">
+                Та өөрийн цуглуулсан{" "}
+                <span className="font-semibold text-slate-800">KHS Token</span>
+                -оор эдгээр байгууллагуудад худалдан авалт хийх боломжтой.
+              </p>
+            </div>
+
+            {/* Баруун/Зүүн сумнууд */}
+            <div className="flex items-center gap-2 self-end sm:self-center">
+              <button
+                onClick={goToPrevious}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-95"
+                aria-label="Өмнөх"
+              >
+                ❮
+              </button>
+              <button
+                onClick={goToNext}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-95"
+                aria-label="Дараах"
+              >
+                ❯
+              </button>
+            </div>
+          </div>
         </div>
-
-        {/* Мобайл сумнууд */}
-        <button
-          onClick={goToPrevious}
-          className="absolute bottom-3 left-3 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-all duration-200 hover:bg-white hover:text-black md:hidden"
-          aria-label="Previous slide mobile"
-        >
-          ❮
-        </button>
-
-        <button
-          onClick={goToNext}
-          className="absolute bottom-3 right-3 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition-all duration-200 hover:bg-white hover:text-black md:hidden"
-          aria-label="Next slide mobile"
-        >
-          ❯
-        </button>
-
-        {/* Десктоп сумнууд */}
-        <button
-          onClick={goToPrevious}
-          className="absolute left-3 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-md transition-all duration-200 hover:bg-white hover:text-black group-hover:opacity-100 md:flex md:opacity-70"
-          aria-label="Previous slide"
-        >
-          ❮
-        </button>
-
-        <button
-          onClick={goToNext}
-          className="absolute right-3 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-md transition-all duration-200 hover:bg-white hover:text-black group-hover:opacity-100 md:flex md:opacity-70"
-          aria-label="Next slide"
-        >
-          ❯
-        </button>
       </div>
     </section>
   );

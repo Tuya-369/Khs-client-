@@ -131,7 +131,7 @@ export default function MerchCard({
           aria-label="Бүтээгдэхүүний ангилал"
         >
           {[
-            ["all", "Бүгд"],
+            ["all", "all"],
             ["merch", "Merch"],
             ["giftcard", "Gift card"],
           ].map(([value, label]) => {

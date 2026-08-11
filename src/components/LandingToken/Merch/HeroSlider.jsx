@@ -56,7 +56,6 @@ export default function HeroSlider() {
     return () => clearInterval(interval);
   }, [goToNext, isPaused]);
 
-  // Гарны сумаар шилжүүлэх
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === "ArrowLeft") goToPrevious();
@@ -66,7 +65,6 @@ export default function HeroSlider() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [goToPrevious, goToNext]);
 
-  // Свайп хийх Touch сенсор
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0]?.clientX ?? null;
   };
@@ -83,7 +81,7 @@ export default function HeroSlider() {
   };
 
   return (
-    <section className="w-full bg-slate-50/50 py-12 px-4 sm:px-6 lg:px-8">
+    <section className="w-full bg-slate-50/50 py-8 px-4 sm:py-12 sm:px-6 lg:px-8">
       <div
         className="relative mx-auto max-w-6xl overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-xl shadow-slate-200/50"
         onMouseEnter={() => setIsPaused(true)}
@@ -91,13 +89,36 @@ export default function HeroSlider() {
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Арын дэвсгэрийн зөөлөн өнгөний уусах тусгал */}
         <div className="absolute inset-0 pointer-events-none opacity-30 transition-colors duration-700 `bg-gradient-to-br` from-slate-50 via-white to-amber-50/30" />
 
-        <div className="relative z-10 min-h-500px sm:min-h-460px flex flex-col justify-between p-6 sm:p-10 lg:p-12">
-          <div className="my-8 grid grid-cols-1 items-center gap-8 lg:grid-cols-12">
+        <div className="relative z-10 flex flex-col justify-between p-5 sm:p-10 lg:min-h-460px lg:p-12">
+          <div className="my-4 grid grid-cols-1 items-center gap-6 sm:my-8 lg:grid-cols-12 lg:gap-8">
+            <div className="order-1 flex items-center justify-center lg:order-2 lg:col-span-5">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activePartner.id}
+                  initial={{ opacity: 0, scale: 0.92 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.92 }}
+                  transition={{ duration: 0.4 }}
+                  className="relative flex h-32 w-32 items-center justify-center sm:h-52 sm:w-52 lg:h-64 lg:w-64"
+                >
+                  <div className="relative h-full w-full">
+                    <Image
+                      src={activePartner.logo}
+                      alt={`${activePartner.title} лого`}
+                      fill
+                      unoptimized
+                      sizes="256px"
+                      className="object-contain"
+                    />
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
             {/* Текст болон товчлуур */}
-            <div className="lg:col-span-7 flex flex-col items-start text-left">
+            <div className="order-2 flex flex-col items-center text-center lg:order-1 lg:col-span-7 lg:items-start lg:text-left">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activePartner.id}
@@ -105,23 +126,23 @@ export default function HeroSlider() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: prefersReducedMotion ? 0 : -15 }}
                   transition={{ duration: 0.4 }}
-                  className="space-y-4"
+                  className="space-y-3 sm:space-y-4"
                 >
-                  <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-slate-900">
+                  <h2 className="text-xl font-bold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl">
                     {activePartner.title}
                   </h2>
 
-                  <p className="max-w-xl text-base leading-relaxed text-slate-600">
+                  <p className="max-w-xl text-sm leading-relaxed text-slate-600 sm:text-base">
                     {activePartner.description}
                   </p>
 
-                  <div className="pt-3">
+                  <div className="pt-2 sm:pt-3">
                     {/* Сошиал/Веб хуудас руу үсрэх товч */}
                     <a
                       href={activePartner.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 rounded-full bg-slate-700 px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-slate-800 hover:shadow-lg active:scale-95"
+                      className="inline-flex items-center gap-2 rounded-full bg-slate-700 px-5 py-2.5 text-xs font-semibold text-white transition-all hover:bg-slate-800 hover:shadow-lg active:scale-95 sm:px-6 sm:py-3 sm:text-sm"
                     >
                       <span>Дэлгэрэнгүй</span>
                       <svg
@@ -142,57 +163,28 @@ export default function HeroSlider() {
                 </motion.div>
               </AnimatePresence>
             </div>
-
-            {/* Лого зураг */}
-            <div className="lg:col-span-5 flex items-center justify-center">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activePartner.id}
-                  initial={{ opacity: 0, scale: 0.92 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.92 }}
-                  transition={{ duration: 0.4 }}
-                  className="relative flex h-52 w-52 sm:h-64 sm:w-64 items-center justify-center"
-                >
-                  <div className="relative h-full w-full">
-                    <Image
-                      src={activePartner.logo}
-                      alt={`${activePartner.title} лого`}
-                      fill
-                      unoptimized
-                      sizes="256px"
-                      className="object-contain"
-                    />
-                  </div>
-                </motion.div>
-              </AnimatePresence>
-            </div>
           </div>
 
-          {/* Доод хэсэг: Гарчиг + Таб/Индикатор болон Сумнууд */}
-          <div className="flex flex-col gap-4 border-t border-slate-100 pt-6 sm:flex-row sm:items-center sm:justify-between">
-            {/* Баруун/Зүүн шилжих табын хэсэг */}
+          <div className="flex flex-col items-center gap-3 border-t border-slate-100 pt-4 text-center sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:pt-6 sm:text-left">
             <div className="flex flex-col gap-2">
-              {/* Жижиг санамж гарчиг */}
-              <p className="text-xs font-medium text-slate-500">
+              <p className="text-[11px] font-medium text-slate-500 sm:text-xs">
                 Та өөрийн цуглуулсан{" "}
                 <span className="font-semibold text-slate-800">KHS Token</span>
                 -оор эдгээр байгууллагуудад худалдан авалт хийх боломжтой.
               </p>
             </div>
 
-            {/* Баруун/Зүүн сумнууд */}
-            <div className="flex items-center gap-2 self-end sm:self-center">
+            <div className="flex items-center gap-2">
               <button
                 onClick={goToPrevious}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-95"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-95 sm:h-10 sm:w-10"
                 aria-label="Өмнөх"
               >
                 ❮
               </button>
               <button
                 onClick={goToNext}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-95"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50 active:scale-95 sm:h-10 sm:w-10"
                 aria-label="Дараах"
               >
                 ❯

@@ -1,6 +1,6 @@
 import { Geist_Mono, Noto_Sans } from "next/font/google";
 import "./globals.css";
-import AppShell from "@/Component/Layout/AppShell";
+import AppShell from "@/components/Layout/AppShell";
 import { CartProvider } from "@/context/CartContext";
 
 const notoSans = Noto_Sans({

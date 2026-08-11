@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError, api } from "@/lib/api";
 import { clearSession, getAccessToken } from "@/lib/session";
-import DashboardProfileCard from "@/Component/common/DashboardProfileCard";
+import DashboardProfileCard from "@/components/common/DashboardProfileCard";
 
 const FILTERS = [
   { key: "all", label: "Бүгд" },

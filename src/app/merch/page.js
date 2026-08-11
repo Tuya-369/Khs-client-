@@ -1,4 +1,4 @@
-import MerchCard from "@/Component/LandingToken/Merch/MerchCard";
+import MerchCard from "@/components/LandingToken/Merch/MerchCard";
 
 export default function MerchPage() {
   return (

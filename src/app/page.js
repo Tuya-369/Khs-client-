@@ -1,6 +1,6 @@
-import HeroSlider from "@/Component/LandingToken/Merch/HeroSlider";
-import MerchCard from "@/Component/LandingToken/Merch/MerchCard";
-import TokenAbout from "@/Component/LandingToken/TokenAbout";
+import HeroSlider from "@/components/LandingToken/Merch/HeroSlider";
+import MerchCard from "@/components/LandingToken/Merch/MerchCard";
+import TokenAbout from "@/components/LandingToken/TokenAbout";
 
 export default function Home() {
   return (

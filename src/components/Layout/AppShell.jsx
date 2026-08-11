@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import Header from "@/Component/Layout/Header";
-import Footer from "@/Component/Layout/Footer";
+import Header from "@/components/Layout/Header";
+import Footer from "@/components/Layout/Footer";
 import { getAccessToken, getStoredUser } from "@/lib/session";
 
 const HIDDEN_CHROME_PREFIXES = ["/auth", "/login", "/register"];

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import MerchAbout from "@/Component/LandingToken/Merch/MerchAbout";
+import MerchAbout from "@/components/LandingToken/Merch/MerchAbout";
 import { normalizeMerchItem } from "@/lib/merch";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";

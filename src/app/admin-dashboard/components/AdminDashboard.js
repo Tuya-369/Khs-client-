@@ -149,7 +149,6 @@ export default function AdminDashboard({ currentUser }) {
 
     // 1. Төлөвөөр шүүх
     if (isRequestSupervisor) {
-      // Сэлбэгийн ADMIN логик
       if (statusFilter === "SEARCHING") {
         rows = rows.filter((item) =>
           ["PENDING", "NEW", "APPROVED", "SEARCHING"].includes(item?.status),
@@ -162,15 +161,8 @@ export default function AdminDashboard({ currentUser }) {
         rows = rows.filter((item) =>
           ["COMPLETED", "CONFIRMED"].includes(item?.status),
         );
-      } else if (statusFilter === "history") {
-        rows = rows.filter((item) =>
-          ["COMPLETED", "CONFIRMED", "NOT_FOUND", "REJECTED"].includes(
-            item?.status,
-          ),
-        );
       }
     } else {
-      // TOKEN_MANAGER болон Бусад рольд зориулсан логик
       if (statusFilter === "approved") {
         rows = rows.filter((item) =>
           ["APPROVED", "CONFIRMED"].includes(item?.status),
@@ -182,7 +174,7 @@ export default function AdminDashboard({ currentUser }) {
       }
     }
 
-    // 2. Огноогоор шүүх (Жил, сар, өдөр)
+    // 2. Огноогоор шүүх
     if (selectedDate) {
       rows = rows.filter((item) => {
         const itemDateValue = getItemDate(item, role);
@@ -226,7 +218,7 @@ export default function AdminDashboard({ currentUser }) {
     currentUser,
   ]);
 
-  // Табуудыг ролоос нь хамаарч тодорхойлох
+  // Табуудыг тодорхойлох
   const filterTabs = useMemo(() => {
     if (isRequestSupervisor) {
       return [
@@ -234,7 +226,6 @@ export default function AdminDashboard({ currentUser }) {
         { k: "NOT_FOUND", l: "Сэлбэг олоогүй" },
         { k: "COMPLETED", l: "Гүйцэтгэсэн" },
         { k: "all", l: "Бүгд" },
-        { k: "history", l: "Түүх" },
       ];
     }
     return [
@@ -245,9 +236,9 @@ export default function AdminDashboard({ currentUser }) {
   }, [isRequestSupervisor]);
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-xs space-y-4 animate-fade-in">
+    <div className="w-full max-w-full min-w-0 overflow-x-hidden rounded-2xl border border-slate-200/80 bg-white p-3 sm:p-5 shadow-xs space-y-4 animate-fade-in">
       {/* 1. ШҮҮЛТҮҮРИЙН ХЭСЭГ */}
-      <div className="space-y-3">
+      <div className="space-y-3 min-w-0">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div>
             <h2 className="text-sm font-bold text-slate-800 tracking-tight">
@@ -266,15 +257,15 @@ export default function AdminDashboard({ currentUser }) {
           />
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-          {/* Ролоос хамаарсан FILTER TABS */}
-          <div className="flex flex-wrap gap-1 bg-slate-100/80 p-1 rounded-xl shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs min-w-0">
+          {/* МОБАЙЛ ДЭЭР ДАРААЛАЛ ШИЛЖИЖ ШИНЭ МӨР ҮҮСГЭДЭГ TABS (гарч алдагдахгүй) */}
+          <div className="flex w-full sm:w-auto flex-wrap min-w-0 gap-1 bg-slate-100/80 p-1 rounded-xl">
             {filterTabs.map((f) => (
               <button
                 key={f.k}
                 type="button"
                 onClick={() => setStatusFilter(f.k)}
-                className={`px-3 py-1.5 rounded-lg font-medium transition text-xs ${
+                className={`whitespace-nowrap px-3 py-1.5 rounded-lg font-medium transition text-xs ${
                   statusFilter === f.k
                     ? "bg-white text-slate-900 shadow-sm font-semibold"
                     : "text-slate-500 hover:text-slate-900"
@@ -286,24 +277,28 @@ export default function AdminDashboard({ currentUser }) {
           </div>
 
           {/* Огноо Хайгч */}
-          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5">
-            <span className="text-slate-400 font-medium">Огноо:</span>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-transparent focus:outline-none text-slate-700 font-medium cursor-pointer"
-            />
-            {selectedDate && (
-              <button
-                type="button"
-                onClick={() => setSelectedDate("")}
-                className="ml-1 text-slate-400 hover:text-slate-600 font-bold transition"
-                title="Цэвэрлэх"
-              >
-                ✕
-              </button>
-            )}
+          <div className="flex items-center justify-between sm:justify-start gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 w-full sm:w-auto min-w-0 max-w-full">
+            <span className="text-slate-400 font-medium text-xs shrink-0">
+              Огноо:
+            </span>
+            <div className="flex items-center gap-1 min-w-0 flex-1 sm:flex-initial">
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="bg-transparent focus:outline-none text-slate-700 font-medium cursor-pointer text-xs w-full min-w-0"
+              />
+              {selectedDate && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedDate("")}
+                  className="text-slate-400 hover:text-slate-600 font-bold transition px-1 text-xs shrink-0"
+                  title="Цэвэрлэх"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -326,9 +321,9 @@ export default function AdminDashboard({ currentUser }) {
       )}
 
       {!loading && !error && filteredItems.length > 0 && (
-        <>
+        <div className="w-full min-w-0">
           {/* Desktop Хүснэгт */}
-          <div className="hidden md:block overflow-hidden border border-slate-100 rounded-xl">
+          <div className="hidden md:block overflow-x-auto border border-slate-100 rounded-xl">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-500 font-semibold uppercase tracking-wider border-b border-slate-100">
                 <tr>
@@ -364,10 +359,9 @@ export default function AdminDashboard({ currentUser }) {
                         {formatDate(getItemDate(item, role))}
                       </td>
                       <td className="p-3 text-right">
-                        {/* A. ADMIN РОЛИЙН ТӨЛӨВ СОЛИХ ТОВЧНУУД */}
                         {isRequestSupervisor ? (
-                          statusFilter !== "history" &&
-                          statusFilter !== "COMPLETED" ? (
+                          statusFilter !== "COMPLETED" &&
+                          item.status !== "COMPLETED" ? (
                             <div
                               className="inline-flex gap-1.5"
                               onClick={(e) => e.stopPropagation()}
@@ -416,8 +410,7 @@ export default function AdminDashboard({ currentUser }) {
                               {statusLabel(item?.status)}
                             </span>
                           )
-                        ) : /* B. TOKEN_MANAGER РОЛИЙН ТӨЛӨВ СОЛИХ ТОВЧНУУД */
-                        isPendingToken ? (
+                        ) : isPendingToken ? (
                           <div
                             className="inline-flex gap-1"
                             onClick={(e) => e.stopPropagation()}
@@ -457,7 +450,7 @@ export default function AdminDashboard({ currentUser }) {
           </div>
 
           {/* Mobile First Жагсаалт */}
-          <div className="md:hidden space-y-2">
+          <div className="md:hidden space-y-2 min-w-0">
             {filteredItems.map((item) => {
               const isUpdating = updatingItemId === item.id;
               const isPendingToken =
@@ -467,11 +460,11 @@ export default function AdminDashboard({ currentUser }) {
                 <div
                   key={item.id}
                   onClick={() => setSelectedItem(item)}
-                  className="p-3 bg-slate-50/60 rounded-xl border border-slate-200/50 active:scale-[0.99] transition cursor-pointer flex flex-col gap-2"
+                  className="p-3 bg-slate-50/60 rounded-xl border border-slate-200/50 active:scale-[0.99] transition cursor-pointer flex flex-col gap-2 min-w-0 overflow-hidden"
                 >
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-0.5 min-w-0">
-                      <div className="flex items-center gap-1.5">
+                  <div className="flex justify-between items-start gap-2 min-w-0">
+                    <div className="space-y-0.5 min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-xs font-bold text-slate-800 truncate">
                           {getRequesterName(item, role)}
                         </span>
@@ -479,7 +472,7 @@ export default function AdminDashboard({ currentUser }) {
                           #{item.id?.slice(0, 5)}
                         </span>
                       </div>
-                      <p className="text-[11px] font-medium text-slate-500">
+                      <p className="text-[11px] font-medium text-slate-500 truncate">
                         SAP ID: {getRequesterSap(item, role, currentUser)}
                       </p>
                       <p className="text-[10px] text-slate-400">
@@ -491,12 +484,12 @@ export default function AdminDashboard({ currentUser }) {
                     </span>
                   </div>
 
-                  {/* ADMIN гар утасны товчлуурууд */}
+                  {/* ADMIN гар утасны товчлуурууд (Grid grid-cols-3 ашиглаж багтаасан) */}
                   {isRequestSupervisor &&
-                    statusFilter !== "history" &&
-                    statusFilter !== "COMPLETED" && (
+                    statusFilter !== "COMPLETED" &&
+                    item.status !== "COMPLETED" && (
                       <div
-                        className="flex gap-1.5 pt-1 border-t border-slate-200/40"
+                        className="grid grid-cols-3 gap-1 pt-1.5 border-t border-slate-200/50 w-full"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
@@ -505,7 +498,7 @@ export default function AdminDashboard({ currentUser }) {
                           onClick={(e) =>
                             handleStatusChange(e, item.id, "SEARCHING")
                           }
-                          className="flex-1 rounded-md border border-slate-200 bg-white px-1.5 py-1 text-[10px] font-medium text-slate-700 disabled:opacity-50"
+                          className="w-full rounded-md border border-slate-200 bg-white px-1 py-1.5 text-[10px] font-medium text-slate-700 truncate text-center disabled:opacity-50"
                         >
                           Хайж байгаа
                         </button>
@@ -515,7 +508,7 @@ export default function AdminDashboard({ currentUser }) {
                           onClick={(e) =>
                             handleStatusChange(e, item.id, "NOT_FOUND")
                           }
-                          className="flex-1 rounded-md border border-rose-200 bg-rose-50 px-1.5 py-1 text-[10px] font-medium text-rose-700 disabled:opacity-50"
+                          className="w-full rounded-md border border-rose-200 bg-rose-50 px-1 py-1.5 text-[10px] font-medium text-rose-700 truncate text-center disabled:opacity-50"
                         >
                           Олоогүй
                         </button>
@@ -525,7 +518,7 @@ export default function AdminDashboard({ currentUser }) {
                           onClick={(e) =>
                             handleStatusChange(e, item.id, "COMPLETED")
                           }
-                          className="flex-1 rounded-md border border-emerald-200 bg-emerald-50 px-1.5 py-1 text-[10px] font-medium text-emerald-700 disabled:opacity-50"
+                          className="w-full rounded-md border border-emerald-200 bg-emerald-50 px-1 py-1.5 text-[10px] font-medium text-emerald-700 truncate text-center disabled:opacity-50"
                         >
                           Гүйцэтгэсэн
                         </button>
@@ -535,7 +528,7 @@ export default function AdminDashboard({ currentUser }) {
                   {/* TOKEN_MANAGER гар утасны товчлуурууд */}
                   {role === "TOKEN_MANAGER" && isPendingToken && (
                     <div
-                      className="flex gap-1.5 pt-1 border-t border-slate-200/40"
+                      className="grid grid-cols-2 gap-1.5 pt-1.5 border-t border-slate-200/50 w-full"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <button
@@ -544,7 +537,7 @@ export default function AdminDashboard({ currentUser }) {
                           handleStatusChange(e, item.id, "CONFIRMED")
                         }
                         disabled={isUpdating}
-                        className="flex-1 rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-medium text-emerald-700"
+                        className="w-full rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-[10px] font-medium text-emerald-700 text-center truncate"
                       >
                         Батлах
                       </button>
@@ -554,7 +547,7 @@ export default function AdminDashboard({ currentUser }) {
                           handleStatusChange(e, item.id, "REJECTED")
                         }
                         disabled={isUpdating}
-                        className="flex-1 rounded-md border border-rose-200 bg-rose-50 px-2 py-1 text-[10px] font-medium text-rose-700"
+                        className="w-full rounded-md border border-rose-200 bg-rose-50 px-2 py-1.5 text-[10px] font-medium text-rose-700 text-center truncate"
                       >
                         Батлахгүй
                       </button>
@@ -564,13 +557,13 @@ export default function AdminDashboard({ currentUser }) {
               );
             })}
           </div>
-        </>
+        </div>
       )}
 
       {/* 3. ДЭЛГЭРЭНГҮЙ ХАРАХ МОДАЛ */}
       {selectedItem && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-[2px] p-4 flex items-center justify-center animate-fade-in">
-          <div className="w-full max-w-xl bg-white rounded-xl border border-slate-200 shadow-xl p-5 space-y-4">
+          <div className="w-full max-w-xl bg-white rounded-xl border border-slate-200 shadow-xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2">
               <h3 className="text-sm font-bold text-slate-900">
                 Захиалгын дэлгэрэнгүй

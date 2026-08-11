@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { CalendarDays, Camera, Pencil } from "lucide-react";
 import { useRef, useState } from "react";
 import ProfileCalendar from "./ProfileCalendar";
@@ -39,7 +40,7 @@ export default function ProfileSidebar({
   };
 
   return (
-    <aside className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-6 lg:p-5">
+    <aside className="min-w-0 rounded-lg border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-6 lg:p-5">
       <div className="flex items-start gap-2.5 sm:gap-3">
         <input
           ref={avatarInputRef}
@@ -55,10 +56,12 @@ export default function ProfileSidebar({
           className="group relative grid size-12 shrink-0 place-items-center overflow-hidden rounded-full bg-slate-100 text-sm font-bold text-slate-600"
         >
           {form.profileImage || user?.profileImage || user?.avatarUrl ? (
-            <img
+            <Image
               src={form.profileImage || user?.profileImage || user?.avatarUrl}
               alt={displayName}
-              className="size-full object-cover"
+              fill
+              unoptimized
+              className="object-cover"
             />
           ) : (
             getProfileInitials({ ...user, ...form })

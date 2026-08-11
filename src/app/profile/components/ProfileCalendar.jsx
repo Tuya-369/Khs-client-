@@ -66,7 +66,11 @@ export default function ProfileCalendar({ onClose }) {
   }, []);
 
   useEffect(() => {
-    loadNotes();
+    const timer = window.setTimeout(() => {
+      void loadNotes();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [loadNotes]);
 
   const selectedKey = dateKey(selectedDate);

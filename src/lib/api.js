@@ -63,9 +63,19 @@ const apiRequest = async (path, options = {}) => {
   }
 
   const contentType = response.headers.get("content-type") || "";
-  const payload = contentType.includes("application/json")
-    ? await response.json()
-    : await response.text();
+  const rawText = await response.text();
+  let payload = rawText;
+
+  if (
+    contentType.includes("application/json") ||
+    rawText.trim().startsWith("{")
+  ) {
+    try {
+      payload = JSON.parse(rawText);
+    } catch {
+      payload = rawText;
+    }
+  }
 
   if (!response.ok) {
     const readableText =

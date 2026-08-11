@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Camera, Check, ChevronDown, Search, Send, X } from "lucide-react";
 import { ApiError, api } from "@/lib/api";
 import { clearSession, getAccessToken } from "@/lib/session";
-import DashboardProfileCard from "@/Component/common/DashboardProfileCard";
+import DashboardProfileCard from "@/components/common/DashboardProfileCard";
 
 export function DriverDashboardContent({ embedded = false }) {
   const router = useRouter();
@@ -66,6 +66,9 @@ export function DriverDashboardContent({ embedded = false }) {
     if (status === "APPROVED") return "Батлагдсан";
     if (status === "PENDING") return "Хүлээгдэж буй";
     if (status === "REJECTED") return "Цуцлагдсан";
+    if (status === "SEARCHING") return "Сэлбэг хайж байгаа";
+    if (status === "NOT_FOUND") return "Сэлбэг олоогүй";
+    if (status === "COMPLETED") return "Гүйцэтгэсэн";
     return status;
   };
 
@@ -75,6 +78,12 @@ export function DriverDashboardContent({ embedded = false }) {
     }
     if (status === "PENDING") {
       return "bg-amber-50 text-amber-700 border-amber-200";
+    }
+    if (status === "SEARCHING") {
+      return "bg-sky-50 text-sky-700 border-sky-200";
+    }
+    if (status === "COMPLETED") {
+      return "bg-emerald-50 text-emerald-700 border-emerald-200";
     }
     return "bg-rose-50 text-rose-700 border-rose-200";
   };

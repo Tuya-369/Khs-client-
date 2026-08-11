@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { ApiError, api } from "@/lib/api";
 import { clearSession, getAccessToken, saveSession } from "@/lib/session";
 
-import AdminDashboard from "./components/AdminDashboard";
-import AdminPanel from "./components/AdminPanel";
+import AdminDashboard from "../admin-dashboard/components/AdminDashboard";
+import AdminPanel from "../admin-dashboard/components/AdminPanel";
 import ProfileSidebar from "./components/ProfileSidebar";
 import { DriverDashboardContent } from "../driver-dashboard/page";
 
@@ -187,8 +187,8 @@ export default function ProfilePage() {
           </div>
         )}
 
-        <div className="grid gap-3 lg:grid-cols-12 lg:gap-6">
-          <div className="lg:col-span-4">
+        <div className="grid min-w-0 gap-3 lg:grid-cols-12 lg:gap-6">
+          <div className="min-w-0 lg:col-span-4">
             <ProfileSidebar
               user={user}
               merchOrders={merchOrders}
@@ -202,7 +202,7 @@ export default function ProfilePage() {
             />
           </div>
 
-          <main className="space-y-3 lg:col-span-8 lg:space-y-6">
+          <main className="min-w-0 space-y-3 lg:col-span-8 lg:space-y-6">
             {user?.role === "DRIVER" && <DriverDashboardContent embedded />}
             {user?.role === "ADMIN_PANEL" && <AdminPanel />}
             {user?.role !== "DRIVER" &&

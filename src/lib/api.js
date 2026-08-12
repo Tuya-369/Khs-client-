@@ -1,5 +1,11 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 import { normalizeMerchItem } from "@/lib/merch";
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.VITE_API_URL ||
+  process.env.REACT_APP_API_URL ||
+  "http://localhost:5000";
+import { clearSession } from "@/lib/session";
 
 export class ApiError extends Error {
   constructor(message, details = {}) {
@@ -95,6 +101,14 @@ const apiRequest = async (path, options = {}) => {
       message.includes("Хүчингүй эсвэл хугацаа нь дууссан токен")
     ) {
       message = "Нэвтрэх хугацаа дууссан. Дахин нэвтэрнэ үү.";
+    }
+
+    if (response.status === 401 && typeof window !== "undefined") {
+      clearSession();
+      const isLoginPage = window.location.pathname === "/auth";
+      if (!isLoginPage) {
+        window.location.assign("/auth");
+      }
     }
 
     throw new ApiError(message, {

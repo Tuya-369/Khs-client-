@@ -87,6 +87,13 @@ export default function Header() {
           >
             Contact
           </Link>
+
+          <Link
+            href="/file"
+            className="hover:text-yellow-500 transition-colors"
+          >
+            File
+          </Link>
         </nav>
 
         <div className="flex items-center space-x-5 text-gray-700 relative">
@@ -165,6 +172,14 @@ export default function Header() {
             >
               Contact
             </Link>
+            <Link
+              href="/file"
+              className="hover:text-black py-2 transition-colors"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              File
+            </Link>
+
             {isAuthenticated && (
               <>
                 <Link

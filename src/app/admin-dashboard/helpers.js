@@ -27,6 +27,7 @@ export const statusLabel = (status) => {
   if (status === "SEARCHING") return "Сэлбэг хайж байгаа";
   if (status === "NOT_FOUND") return "Сэлбэг олоогүй";
   if (status === "COMPLETED") return "Гүйцэтгэсэн";
+  if (status === "REQUESTED") return "Захиалсан";
   return status || "-";
 };
 

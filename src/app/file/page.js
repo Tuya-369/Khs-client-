@@ -4,41 +4,45 @@ import { useState } from "react";
 import { Eye, Download } from "lucide-react";
 
 // 1. Категориудын жагсаалт
-const CATEGORIES = [
-  "Бүгд",
-  "Цалингийн журам",
-  "Чөлөө олгох",
-  "Ээлжийн амралт",
-  "Илүү цаг",
-];
+const CATEGORIES = ["Бүгд", "Тайлан", "Журам", "Хуудас"];
 
 // 2. Баримт бичгүүдийн дээж дата
 const DOCUMENTS = [
   {
+    id: 0,
+    title: "Ажилтны дотоод журам",
+    category: "Журам",
+    fileUrl: "/file/Juram.pdf",
+  },
+  {
     id: 1,
-    title: "Компанийн дотоод журам",
-    category: "Цалингийн журам",
-    // Сонгосон Google Drive эсвэл PDF-ийн холбоос
-    fileUrl:
-      "https://drive.google.com/drive/u/1/folders/13YGcpErcApzbwGvyu4WwXP6f4QeapPaM",
+    title: "Цалин хөлсний журам ",
+    category: "Журам",
+    fileUrl: "/file/salary.pdf",
   },
   {
     id: 2,
-    title: "Оюу толгой үйлдвэр - Тайлбар ном /Үр өгөөж, шалгуур сорилтууд/",
-    category: "Чөлөө олгох",
-    fileUrl: "/file/salary.pdf", // Энд өөрийн файлаа тавина
+    title: "2026 оны хагас жилийн тайлан тайлан",
+    category: "Тайлан",
+    fileUrl: "/file/salary.pdf",
   },
   {
     id: 3,
-    title: "Хурдасгуур сан - Ханбогд сумын боловсролын үйлчилгээний чанар",
-    category: "Ээлжийн амралт",
-    fileUrl: "/file/salary.pdf",
+    title: "Чөлөө олгох ",
+    category: "Хуудас",
+    fileUrl: "/file/LeaveRequest.pdf",
   },
   {
     id: 4,
-    title: "Хурдасгуур сан - Teach for Mongolia Fellowship хөтөлбөр",
-    category: "Илүү цаг",
-    fileUrl: "/file/salary.pdf",
+    title: "Ээлжийн амралт",
+    category: "Хуудас",
+    fileUrl: "/file/AnnualLeave.pdf",
+  },
+  {
+    id: 5,
+    title: "Илүү цаг",
+    category: "Хуудас",
+    fileUrl: "/file/Overtime.pdf",
   },
 ];
 
@@ -52,9 +56,8 @@ export default function FilePage() {
       : DOCUMENTS.filter((doc) => doc.category === selectedCategory);
 
   return (
-    <div className="w-full min-h-screen bg-gray-50 p-6 flex flex-col items-center">
+    <div className="w-full min-flex-1  py-20 px-6 flex flex-col items-center justify-start">
       <div className="max-w-5xl w-full flex flex-col gap-6">
-        {/* --- 1. ТАБ/КАТЕГОРИ ХЭСЭГ --- */}
         <div className="flex flex-wrap gap-3 justify-start">
           {CATEGORIES.map((cat) => (
             <button
@@ -62,7 +65,7 @@ export default function FilePage() {
               onClick={() => setSelectedCategory(cat)}
               className={`px-4 py-2 rounded-xl text-sm font-medium transition-all border ${
                 selectedCategory === cat
-                  ? "bg-orange-600 text-white border-orange-600 shadow-sm"
+                  ? "bg-gray-600 text-white border-gray-600 shadow-sm"
                   : "bg-white text-gray-600 border-gray-200 hover:bg-gray-100"
               }`}
             >
@@ -88,7 +91,7 @@ export default function FilePage() {
 
                 {/* Товчлуурууд */}
                 <div className="flex items-center gap-4 shrink-0">
-                  {/* УНШИХ ТОВЧ - Шууд холбоос руу үсрэх (`<a>` таг ашигласан) */}
+                  {/* УНШИХ ТОВЧ */}
                   <a
                     href={doc.fileUrl}
                     target="_blank"

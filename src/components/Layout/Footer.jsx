@@ -50,7 +50,7 @@ export default function Footer() {
   return (
     <footer
       id="contact"
-      className="bg-neutral-50 border-t border-neutral-200/60 font-sans antialiased text-neutral-600"
+      className="mt-auto w-full bg-neutral-50 border-t border-neutral-200/60 font-sans antialiased text-neutral-600"
     >
       <div className="max-w-5xl mx-auto px-6 py-12">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 md:gap-12 mb-10">

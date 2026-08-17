@@ -63,7 +63,6 @@ export default function Footer() {
             </p>
           </div>
 
-          {/* Холбоо барих */}
           <div>
             <h4 className="text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-400 mb-3.5">
               Contact Us

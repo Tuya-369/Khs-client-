@@ -25,6 +25,7 @@ export const statusLabel = (status) => {
   if (status === "APPROVED") return "Батлагдсан";
   if (status === "REJECTED") return "Цуцлагдсан";
   if (status === "SEARCHING") return "Сэлбэг хайж байгаа";
+  if (status === "ORDERED") return "Сэлбэг захиалсан";
   if (status === "NOT_FOUND") return "Сэлбэг олоогүй";
   if (status === "COMPLETED") return "Гүйцэтгэсэн";
   if (status === "REQUESTED") return "Захиалсан";

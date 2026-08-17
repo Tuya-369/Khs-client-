@@ -15,7 +15,6 @@ import { getAccessToken } from "@/lib/session";
 
 const weekDays = ["Да", "Мя", "Лх", "Пү", "Ба", "Бя", "Ня"];
 
-// Local timezone-оор YYYY-MM-DD форматыг авагч
 const dateKey = (date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -35,7 +34,6 @@ export default function ProfileCalendar({ onClose }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Тэмдэглэл татах функц
   const loadNotes = useCallback(async () => {
     const token = getAccessToken();
     if (!token) return;
@@ -48,7 +46,7 @@ export default function ProfileCalendar({ onClose }) {
 
       const grouped = savedNotes.reduce((groupedNotes, note) => {
         if (!note.noteDate) return groupedNotes;
-        const key = note.noteDate.slice(0, 10); // YYYY-MM-DD
+        const key = note.noteDate.slice(0, 10);
         const dateNotes = groupedNotes[key] || [];
         groupedNotes[key] = [...dateNotes, note];
         return groupedNotes;
@@ -177,7 +175,6 @@ export default function ProfileCalendar({ onClose }) {
 
   return (
     <section className="border-t border-slate-200 pt-5">
-      {/* HEADER */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-bold text-slate-900">Төлөвлөгөө</h2>
@@ -224,12 +221,10 @@ export default function ProfileCalendar({ onClose }) {
         </div>
       </div>
 
-      {/* CURRENT MONTH */}
       <p className="mb-2 text-center text-xs font-semibold text-slate-700 capitalize">
         {month.toLocaleDateString("mn-MN", { month: "long", year: "numeric" })}
       </p>
 
-      {/* CALENDAR GRID */}
       <div className="grid grid-cols-7 gap-1 text-center">
         {weekDays.map((day) => (
           <span
@@ -272,7 +267,6 @@ export default function ProfileCalendar({ onClose }) {
         })}
       </div>
 
-      {/* NOTES SECTION */}
       <div className="mt-4 pt-3 border-t border-slate-100">
         <div className="flex items-center justify-between">
           <p className="text-[11px] font-semibold text-slate-600">
@@ -287,7 +281,6 @@ export default function ProfileCalendar({ onClose }) {
           </span>
         </div>
 
-        {/* INPUT FORM */}
         <form onSubmit={addNote} className="mt-2 flex gap-2">
           <input
             value={draft}
@@ -316,7 +309,6 @@ export default function ProfileCalendar({ onClose }) {
           </p>
         )}
 
-        {/* NOTES LIST */}
         <ul className="mt-2 max-h-48 overflow-y-auto space-y-1.5 pr-1">
           {(notes[selectedKey] || []).length === 0 ? (
             <li className="text-[11px] text-slate-400 text-center py-2 italic">

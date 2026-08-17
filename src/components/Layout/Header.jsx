@@ -38,7 +38,6 @@ export default function Header() {
     try {
       await api.logout(token || undefined);
     } catch {
-      // Continue local logout even if backend logout fails.
     } finally {
       clearSession();
       setIsAuthenticated(false);

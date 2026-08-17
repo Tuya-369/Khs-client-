@@ -28,14 +28,12 @@ export default function AdminDashboard({ currentUser }) {
   const role = currentUser?.role;
   const isRequestSupervisor = role === "ADMIN";
 
-  // Шүүлтүүрийн state-үүд
   const [sapQuery, setSapQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState(
     isRequestSupervisor ? "SEARCHING" : "all",
   );
-  const [selectedDate, setSelectedDate] = useState(""); // YYYY-MM-DD
+  const [selectedDate, setSelectedDate] = useState("");
 
-  // Модал цонхны state
   const [selectedItem, setSelectedItem] = useState(null);
 
   useEffect(() => {
@@ -46,7 +44,6 @@ export default function AdminDashboard({ currentUser }) {
     return () => window.clearTimeout(statusTimer);
   }, [isRequestSupervisor]);
 
-  // Өгөгдөл татах функц
   const fetchItems = useCallback(
     async (isMounted) => {
       const token = getAccessToken();
@@ -102,7 +99,6 @@ export default function AdminDashboard({ currentUser }) {
     };
   }, [fetchItems]);
 
-  // Төлөв солих (ADMIN & TOKEN_MANAGER-т тус тусад нь)
   const handleStatusChange = async (event, itemId, newStatus) => {
     event.stopPropagation();
 
@@ -122,7 +118,6 @@ export default function AdminDashboard({ currentUser }) {
         await api.updateRequestStatus(token, itemId, newStatus);
       }
 
-      // Төлөвийг шинэчлэх
       setItems((currentItems) =>
         currentItems.map((item) =>
           item.id === itemId ? { ...item, status: newStatus } : item,
@@ -143,16 +138,16 @@ export default function AdminDashboard({ currentUser }) {
     }
   };
 
-  // Дата шүүх логик
   const filteredItems = useMemo(() => {
     let rows = items ? [...items] : [];
 
-    // 1. Төлөвөөр шүүх
     if (isRequestSupervisor) {
       if (statusFilter === "SEARCHING") {
         rows = rows.filter((item) =>
           ["PENDING", "NEW", "APPROVED", "SEARCHING"].includes(item?.status),
         );
+      } else if (statusFilter === "ORDERED") {
+        rows = rows.filter((item) => item?.status === "ORDERED");
       } else if (statusFilter === "NOT_FOUND") {
         rows = rows.filter((item) =>
           ["NOT_FOUND", "REJECTED"].includes(item?.status),
@@ -174,7 +169,6 @@ export default function AdminDashboard({ currentUser }) {
       }
     }
 
-    // 2. Огноогоор шүүх
     if (selectedDate) {
       rows = rows.filter((item) => {
         const itemDateValue = getItemDate(item, role);
@@ -192,7 +186,6 @@ export default function AdminDashboard({ currentUser }) {
       });
     }
 
-    // 3. SAP дугаараар шүүх
     const query = sapQuery.trim().toLowerCase();
     if (query) {
       rows = rows.filter((item) => {
@@ -218,11 +211,11 @@ export default function AdminDashboard({ currentUser }) {
     currentUser,
   ]);
 
-  // Табуудыг тодорхойлох
   const filterTabs = useMemo(() => {
     if (isRequestSupervisor) {
       return [
         { k: "SEARCHING", l: "Сэлбэг хайж байгаа" },
+        { k: "ORDERED", l: "Сэлбэг захиалсан" },
         { k: "NOT_FOUND", l: "Сэлбэг олоогүй" },
         { k: "COMPLETED", l: "Гүйцэтгэсэн" },
         { k: "all", l: "Бүгд" },
@@ -237,7 +230,6 @@ export default function AdminDashboard({ currentUser }) {
 
   return (
     <div className="w-full max-w-full min-w-0 overflow-x-hidden rounded-2xl border border-slate-200/80 bg-white p-3 sm:p-5 shadow-xs space-y-4 animate-fade-in">
-      {/* 1. ШҮҮЛТҮҮРИЙН ХЭСЭГ */}
       <div className="space-y-3 min-w-0">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div>
@@ -258,7 +250,6 @@ export default function AdminDashboard({ currentUser }) {
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs min-w-0">
-          {/* МОБАЙЛ ДЭЭР ДАРААЛАЛ ШИЛЖИЖ ШИНЭ МӨР ҮҮСГЭДЭГ TABS (гарч алдагдахгүй) */}
           <div className="flex w-full sm:w-auto flex-wrap min-w-0 gap-1 bg-slate-100/80 p-1 rounded-xl">
             {filterTabs.map((f) => (
               <button
@@ -276,7 +267,6 @@ export default function AdminDashboard({ currentUser }) {
             ))}
           </div>
 
-          {/* Огноо Хайгч */}
           <div className="flex items-center justify-between sm:justify-start gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 w-full sm:w-auto min-w-0 max-w-full">
             <span className="text-slate-400 font-medium text-xs shrink-0">
               Огноо:
@@ -303,7 +293,6 @@ export default function AdminDashboard({ currentUser }) {
         </div>
       </div>
 
-      {/* 2. ЖАГСААЛТ / ХҮСНЭГТ ХЭСЭГ */}
       {error && (
         <div className="text-xs text-red-500 bg-red-50 p-3 rounded-xl border border-red-100">
           {error}
@@ -322,7 +311,6 @@ export default function AdminDashboard({ currentUser }) {
 
       {!loading && !error && filteredItems.length > 0 && (
         <div className="w-full min-w-0">
-          {/* Desktop Хүснэгт */}
           <div className="hidden md:block overflow-x-auto border border-slate-100 rounded-xl">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-500 font-semibold uppercase tracking-wider border-b border-slate-100">
@@ -381,6 +369,22 @@ export default function AdminDashboard({ currentUser }) {
                                 }`}
                               >
                                 Хайж байгаа
+                              </button>
+                              <button
+                                type="button"
+                                disabled={
+                                  isUpdating || item.status === "ORDERED"
+                                }
+                                onClick={(e) =>
+                                  handleStatusChange(e, item.id, "ORDERED")
+                                }
+                                className={`rounded-md px-2 py-1 text-[10px] font-medium border transition ${
+                                  item.status === "ORDERED"
+                                    ? "bg-sky-50 text-sky-700 border-sky-200 opacity-60 cursor-default"
+                                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                                }`}
+                              >
+                                Сэлбэг захиалсан
                               </button>
                               <button
                                 type="button"
@@ -449,7 +453,6 @@ export default function AdminDashboard({ currentUser }) {
             </table>
           </div>
 
-          {/* Mobile First Жагсаалт */}
           <div className="md:hidden space-y-2 min-w-0">
             {filteredItems.map((item) => {
               const isUpdating = updatingItemId === item.id;
@@ -484,12 +487,11 @@ export default function AdminDashboard({ currentUser }) {
                     </span>
                   </div>
 
-                  {/* ADMIN гар утасны товчлуурууд (Grid grid-cols-3 ашиглаж багтаасан) */}
                   {isRequestSupervisor &&
                     statusFilter !== "COMPLETED" &&
                     item.status !== "COMPLETED" && (
                       <div
-                        className="grid grid-cols-3 gap-1 pt-1.5 border-t border-slate-200/50 w-full"
+                        className="grid grid-cols-2 gap-1 pt-1.5 border-t border-slate-200/50 w-full"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
@@ -501,6 +503,16 @@ export default function AdminDashboard({ currentUser }) {
                           className="w-full rounded-md border border-slate-200 bg-white px-1 py-1.5 text-[10px] font-medium text-slate-700 truncate text-center disabled:opacity-50"
                         >
                           Хайж байгаа
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isUpdating || item.status === "ORDERED"}
+                          onClick={(e) =>
+                            handleStatusChange(e, item.id, "ORDERED")
+                          }
+                          className="w-full rounded-md border border-sky-200 bg-sky-50 px-1 py-1.5 text-[10px] font-medium text-sky-700 truncate text-center disabled:opacity-50"
+                        >
+                          Захиалсан
                         </button>
                         <button
                           type="button"
@@ -525,7 +537,6 @@ export default function AdminDashboard({ currentUser }) {
                       </div>
                     )}
 
-                  {/* TOKEN_MANAGER гар утасны товчлуурууд */}
                   {role === "TOKEN_MANAGER" && isPendingToken && (
                     <div
                       className="grid grid-cols-2 gap-1.5 pt-1.5 border-t border-slate-200/50 w-full"
@@ -560,7 +571,6 @@ export default function AdminDashboard({ currentUser }) {
         </div>
       )}
 
-      {/* 3. ДЭЛГЭРЭНГҮЙ ХАРАХ МОДАЛ */}
       {selectedItem && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-[2px] p-4 flex items-center justify-center animate-fade-in">
           <div className="w-full max-w-xl bg-white rounded-xl border border-slate-200 shadow-xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">

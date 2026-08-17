@@ -3,10 +3,8 @@
 import { useState } from "react";
 import { Eye, Download } from "lucide-react";
 
-// 1. Категориудын жагсаалт
 const CATEGORIES = ["Бүгд", "Тайлан", "Журам", "Хуудас"];
 
-// 2. Баримт бичгүүдийн дээж дата
 const DOCUMENTS = [
   {
     id: 0,
@@ -49,7 +47,6 @@ const DOCUMENTS = [
 export default function FilePage() {
   const [selectedCategory, setSelectedCategory] = useState("Бүгд");
 
-  // Категориор шүүх логик
   const filteredDocs =
     selectedCategory === "Бүгд"
       ? DOCUMENTS
@@ -74,7 +71,6 @@ export default function FilePage() {
           ))}
         </div>
 
-        {/* --- 2. БАРИМТ БИЧГИЙН ЖАГСААЛТ --- */}
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <div className="text-gray-400 font-semibold mb-4 text-sm">2026</div>
 
@@ -84,14 +80,11 @@ export default function FilePage() {
                 key={doc.id}
                 className="py-4 flex items-center justify-between gap-4 hover:bg-gray-50/50 px-2 rounded-lg transition-colors"
               >
-                {/* Гарчиг */}
                 <p className="text-gray-700 text-sm font-medium flex-1">
                   {doc.title}
                 </p>
 
-                {/* Товчлуурууд */}
                 <div className="flex items-center gap-4 shrink-0">
-                  {/* УНШИХ ТОВЧ */}
                   <a
                     href={doc.fileUrl}
                     target="_blank"
@@ -102,7 +95,6 @@ export default function FilePage() {
                     Унших
                   </a>
 
-                  {/* ТАТАХ ТОВЧ */}
                   <a
                     href={doc.fileUrl}
                     target="_blank"

@@ -49,7 +49,6 @@ export default function HeroSlider() {
     setCurrentIndex((prev) => (prev === 0 ? PARTNERS.length - 1 : prev - 1));
   }, []);
 
-  // Автомат слайд ажиллах хэсэг
   useEffect(() => {
     if (isPaused) return;
     const interval = setInterval(goToNext, SLIDE_DURATION);
@@ -117,7 +116,6 @@ export default function HeroSlider() {
               </AnimatePresence>
             </div>
 
-            {/* Текст болон товчлуур */}
             <div className="order-2 flex flex-col items-center text-center lg:order-1 lg:col-span-7 lg:items-start lg:text-left">
               <AnimatePresence mode="wait">
                 <motion.div
@@ -137,7 +135,6 @@ export default function HeroSlider() {
                   </p>
 
                   <div className="pt-2 sm:pt-3">
-                    {/* Сошиал/Веб хуудас руу үсрэх товч */}
                     <a
                       href={activePartner.url}
                       target="_blank"

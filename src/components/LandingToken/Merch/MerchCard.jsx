@@ -164,7 +164,6 @@ export default function MerchCard({
         </div>
       </div>
 
-      {/* kart*/}
       <div className={gridClassName}>
         {visibleItems.map((item) => (
           <Link

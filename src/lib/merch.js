@@ -17,9 +17,7 @@ const parseStringArray = (value) => {
             .map((entry) => String(entry || "").trim())
             .filter(Boolean);
         }
-      } catch {
-        // Fallback to delimiter split below.
-      }
+      } catch {}
     }
 
     return trimmed

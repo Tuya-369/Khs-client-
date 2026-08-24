@@ -25,7 +25,7 @@ const PARTNERS = [
     id: "OYUT PIZZA UHG LLC",
     title: "Oyut Pizza",
     description:
-      "Оюу Толгой төслийн талбайд үйл ажиллагаа явуулдаг ба уурхайчдад зориулсан амттай пицца, хоол, ундааг хүргэдэг.",
+      "Оюу Толгой төслийн талбайд үйл ажиллагаа явуулдаг ба уурхайчдад зориулсан амттай пицца, хоол хүргэдэг.",
     logo: "https://res.cloudinary.com/hfroefns/image/upload/v1786350937/528039625_1293939149185084_471515427446860816_n-removebg-preview_vv3tbb.png",
     url: "https://www.facebook.com/uhgllc",
   },

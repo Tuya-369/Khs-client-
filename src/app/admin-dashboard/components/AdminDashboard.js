@@ -10,14 +10,8 @@ import {
   getRequesterName,
   formatDate,
   statusLabel,
+  getUploadedImageUrl,
 } from "../helpers";
-
-const getUploadedImageUrl = (url) => {
-  if (!url) return "";
-  return url.startsWith("/")
-    ? `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}${url}`
-    : url;
-};
 
 export default function AdminDashboard({ currentUser }) {
   const [items, setItems] = useState([]);
@@ -109,11 +103,7 @@ export default function AdminDashboard({ currentUser }) {
     setError("");
     try {
       if (role === "TOKEN_MANAGER") {
-        if (newStatus === "CONFIRMED") {
-          await api.confirmOrder(token, itemId);
-        } else {
-          await api.rejectOrder(token, itemId);
-        }
+        await api.confirmOrder(token, itemId);
       } else {
         await api.updateRequestStatus(token, itemId, newStatus);
       }
@@ -158,14 +148,10 @@ export default function AdminDashboard({ currentUser }) {
         );
       }
     } else {
-      if (statusFilter === "approved") {
-        rows = rows.filter((item) =>
-          ["APPROVED", "CONFIRMED"].includes(item?.status),
-        );
-      } else if (statusFilter === "unapproved") {
-        rows = rows.filter(
-          (item) => !["APPROVED", "CONFIRMED"].includes(item?.status),
-        );
+      if (statusFilter === "delivered") {
+        rows = rows.filter((item) => item?.status === "CONFIRMED");
+      } else if (statusFilter === "pending") {
+        rows = rows.filter((item) => item?.status !== "CONFIRMED");
       }
     }
 
@@ -223,8 +209,8 @@ export default function AdminDashboard({ currentUser }) {
     }
     return [
       { k: "all", l: "Бүгд" },
-      { k: "approved", l: "Баталсан" },
-      { k: "unapproved", l: "Батлаагүй" },
+      { k: "delivered", l: "Хүлээлгэн өгсөн" },
+      { k: "pending", l: "Хүлээгдэж байна" },
     ];
   }, [isRequestSupervisor]);
 
@@ -427,17 +413,17 @@ export default function AdminDashboard({ currentUser }) {
                               disabled={isUpdating}
                               className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 hover:bg-emerald-100"
                             >
-                              Батлах
+                              Хүлээлгэн өгсөн
                             </button>
                             <button
                               type="button"
-                              onClick={(e) =>
-                                handleStatusChange(e, item.id, "REJECTED")
-                              }
-                              disabled={isUpdating}
-                              className="rounded-md border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-medium text-rose-700 hover:bg-rose-100"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setStatusFilter("pending");
+                              }}
+                              className="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-medium text-slate-600 hover:bg-slate-50"
                             >
-                              Батлахгүй
+                              Хүлээгдэж байна
                             </button>
                           </div>
                         ) : (
@@ -550,17 +536,14 @@ export default function AdminDashboard({ currentUser }) {
                         disabled={isUpdating}
                         className="w-full rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-[10px] font-medium text-emerald-700 text-center truncate"
                       >
-                        Батлах
+                        Хүлээлгэн өгсөн
                       </button>
                       <button
                         type="button"
-                        onClick={(e) =>
-                          handleStatusChange(e, item.id, "REJECTED")
-                        }
-                        disabled={isUpdating}
-                        className="w-full rounded-md border border-rose-200 bg-rose-50 px-2 py-1.5 text-[10px] font-medium text-rose-700 text-center truncate"
+                        onClick={() => setStatusFilter("pending")}
+                        className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-[10px] font-medium text-slate-600 text-center truncate"
                       >
-                        Батлахгүй
+                        Хүлээгдэж байна
                       </button>
                     </div>
                   )}

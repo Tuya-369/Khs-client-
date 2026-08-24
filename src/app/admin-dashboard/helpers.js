@@ -20,9 +20,8 @@ export const getRequesterSap = (item, role, currentUser) => {
 
 export const statusLabel = (status) => {
   if (status === "NEW") return "Шинэ";
-  if (status === "CONFIRMED") return "Батлагдсан";
-  if (status === "PENDING") return "Шинэ";
-  if (status === "APPROVED") return "Батлагдсан";
+  if (status === "CONFIRMED") return "Хүлээлгэн өгсөн";
+  if (status === "PENDING") return "Хүлээгдэж байгаа";
   if (status === "REJECTED") return "Цуцлагдсан";
   if (status === "SEARCHING") return "Сэлбэг хайж байгаа";
   if (status === "ORDERED") return "Сэлбэг захиалсан";

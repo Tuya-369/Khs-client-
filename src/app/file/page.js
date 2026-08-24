@@ -22,7 +22,7 @@ const DOCUMENTS = [
     id: 2,
     title: "2026 оны хагас жилийн тайлан тайлан",
     category: "Тайлан",
-    fileUrl: "/file/salary.pdf",
+    fileUrl: "",
   },
   {
     id: 3,

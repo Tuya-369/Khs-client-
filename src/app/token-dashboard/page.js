@@ -9,10 +9,20 @@ import DashboardProfileCard from "@/components/common/DashboardProfileCard";
 
 const FILTERS = [
   { key: "all", label: "Бүгд" },
-  { key: "new", label: "Шинэ" },
-  { key: "confirmed", label: "Батлагдсан" },
-  { key: "unread", label: "Уншаагүй" },
+  { key: "delivered", label: "Хүлээлгэн өгсөн" },
+  { key: "pending", label: "Хүлээгдэж байна" },
 ];
+
+const isNewOrder = (order) => {
+  if (order.isReadByManager || !order.orderedAt) {
+    return false;
+  }
+
+  const orderedAt = new Date(order.orderedAt).getTime();
+  const fourDaysAgo = Date.now() - 4 * 24 * 60 * 60 * 1000;
+
+  return Number.isFinite(orderedAt) && orderedAt >= fourDaysAgo;
+};
 
 export default function TokenDashboard() {
   const router = useRouter();
@@ -22,51 +32,58 @@ export default function TokenDashboard() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const loadOrders = useCallback(
-    async (filter = activeFilter) => {
-      const token = getAccessToken();
-      if (!token) {
+  const loadOrders = useCallback(async () => {
+    const token = getAccessToken();
+    if (!token) {
+      router.push("/auth");
+      return;
+    }
+
+    setLoading(true);
+    setErrorMessage("");
+
+    try {
+      const [meResponse, ordersResponse] = await Promise.all([
+        api.me(token),
+        api.getManagerOrders(token, "all"),
+      ]);
+
+      setProfile(meResponse?.data?.user || null);
+      setOrders(ordersResponse?.data || []);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        clearSession();
         router.push("/auth");
         return;
       }
 
-      setLoading(true);
-      setErrorMessage("");
-
-      try {
-        const [meResponse, ordersResponse] = await Promise.all([
-          api.me(token),
-          api.getManagerOrders(token, filter),
-        ]);
-
-        setProfile(meResponse?.data?.user || null);
-        setOrders(ordersResponse?.data || []);
-      } catch (error) {
-        if (error instanceof ApiError && error.status === 401) {
-          clearSession();
-          router.push("/auth");
-          return;
-        }
-
-        setErrorMessage("Merch захиалга татах үед алдаа гарлаа.");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [activeFilter, router],
-  );
+      setErrorMessage("Merch захиалга татах үед алдаа гарлаа.");
+    } finally {
+      setLoading(false);
+    }
+  }, [router]);
 
   useEffect(() => {
     const loadTimer = window.setTimeout(() => {
-      void loadOrders(activeFilter);
+      void loadOrders();
     }, 0);
 
     return () => window.clearTimeout(loadTimer);
-  }, [activeFilter, loadOrders]);
+  }, [loadOrders]);
 
   const filteredOrders = useMemo(() => {
+    if (activeFilter === "delivered") {
+      return orders.filter((order) => order.status === "CONFIRMED");
+    }
+
+    if (activeFilter === "pending") {
+      return orders.filter(
+        (order) => order.status !== "CONFIRMED" && !isNewOrder(order),
+      );
+    }
+
     return orders;
-  }, [orders]);
+  }, [activeFilter, orders]);
 
   const formatDate = (value) => {
     if (!value) return "";
@@ -88,7 +105,7 @@ export default function TokenDashboard() {
 
     try {
       await api.confirmOrder(token, id);
-      await loadOrders(activeFilter);
+      await loadOrders();
     } catch {
       setErrorMessage("Захиалга батлах үед алдаа гарлаа.");
     }
@@ -108,7 +125,7 @@ export default function TokenDashboard() {
 
     try {
       await api.markOrderRead(token, id);
-      await loadOrders(activeFilter);
+      await loadOrders();
     } catch {
       setErrorMessage("Уншсан төлөв шинэчлэх үед алдаа гарлаа.");
     }
@@ -167,86 +184,99 @@ export default function TokenDashboard() {
           </div>
 
           <div className="space-y-3">
-            {filteredOrders.map((order) => (
-              <div
-                key={order.id}
-                onClick={() => handleMarkRead(order.id)}
-                className="p-4 bg-slate-50 border border-slate-200/80 rounded-xl space-y-4"
-              >
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                  <div className="flex items-start gap-3">
-                    <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200 bg-white shrink-0">
-                      {order?.merchItem?.imageUrl ? (
-                        <Image
-                          src={order.merchItem.imageUrl}
-                          alt={order.merchItem.title}
-                          fill
-                          sizes="64px"
-                          unoptimized
-                          className="object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[10px] text-slate-400">
-                          No image
-                        </div>
-                      )}
+            {filteredOrders.map((order) => {
+              const isNew = isNewOrder(order);
+              const isDelivered = order.status === "CONFIRMED";
+              const canMarkDelivered = !isDelivered;
+
+              return (
+                <div
+                  key={order.id}
+                  onClick={() => handleMarkRead(order.id)}
+                  className="p-4 bg-slate-50 border border-slate-200/80 rounded-xl space-y-4"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                    <div className="flex items-start gap-3">
+                      <div className="relative w-16 h-16 rounded-lg overflow-hidden border border-slate-200 bg-white shrink-0">
+                        {order?.merchItem?.imageUrl ? (
+                          <Image
+                            src={order.merchItem.imageUrl}
+                            alt={order.merchItem.title}
+                            fill
+                            sizes="64px"
+                            unoptimized
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-[10px] text-slate-400">
+                            No image
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {order?.merchItem?.title} / {order.size} /{" "}
+                          {order.color}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {order?.user?.lastName} {order?.user?.firstName} • SAP{" "}
+                          {order?.user?.sapId}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          Утас: {order?.user?.phoneNumber || "-"}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {order?.merchItem?.title} / {order.size} / {order.color}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        {order?.user?.lastName} {order?.user?.firstName} • SAP{" "}
-                        {order?.user?.sapId}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        Утас: {order?.user?.phoneNumber || "-"}
-                      </p>
+
+                    {canMarkDelivered && (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleConfirm(order.id);
+                        }}
+                        className="px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
+                      >
+                        Хүлээлгэн өгсөн
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <div className="px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-600">
+                      Захиалсан:{" "}
+                      <span className="font-semibold">
+                        {formatDate(order.orderedAt)}
+                      </span>
+                    </div>
+                    <div className="px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-600">
+                      Тоо: <span className="font-semibold">{order.qty}ш</span>
                     </div>
                   </div>
 
-                  {order.status === "NEW" && (
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleConfirm(order.id);
-                      }}
-                      className="px-3 py-1.5 text-xs font-semibold bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span
+                      className={`px-2 py-1 rounded-md border font-semibold ${
+                        isDelivered
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          : isNew
+                            ? "bg-amber-50 text-amber-700 border-amber-200"
+                            : "bg-slate-100 text-slate-600 border-slate-200"
+                      }`}
                     >
-                      Батлах
-                    </button>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                  <div className="px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-600">
-                    Захиалсан:{" "}
-                    <span className="font-semibold">
-                      {formatDate(order.orderedAt)}
+                      {isDelivered
+                        ? "Хүлээлгэн өгсөн"
+                        : isNew
+                          ? "Шинэ"
+                          : "Хүлээгдэж байна"}
+                    </span>
+                    <span className="text-slate-500">
+                      {order.isReadByManager ? "Уншсан" : "Уншаагүй"}
                     </span>
                   </div>
-                  <div className="px-3 py-2 rounded-lg bg-white border border-slate-200 text-slate-600">
-                    Тоо: <span className="font-semibold">{order.qty}ш</span>
-                  </div>
                 </div>
-
-                <div className="flex items-center justify-between text-[11px]">
-                  <span
-                    className={`px-2 py-1 rounded-md border font-semibold ${
-                      order.status === "CONFIRMED"
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        : "bg-amber-50 text-amber-700 border-amber-200"
-                    }`}
-                  >
-                    {order.status === "CONFIRMED" ? "Батлагдсан" : "Шинэ"}
-                  </span>
-                  <span className="text-slate-500">
-                    {order.isReadByManager ? "Уншсан" : "Уншаагүй"}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
 
             {filteredOrders.length === 0 && (
               <div className="text-center text-sm text-slate-500 py-8 border border-dashed border-slate-300 rounded-xl bg-slate-50">

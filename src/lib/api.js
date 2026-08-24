@@ -228,7 +228,7 @@ export const api = {
     formData.append("partIds", JSON.stringify(data.partIds));
     formData.append("description", data.description);
 
-    (data.images || []).forEach((file) => {
+    (data.images || []).slice(0, 5).forEach((file) => {
       formData.append("images", file);
     });
 

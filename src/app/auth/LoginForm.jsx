@@ -294,7 +294,12 @@ export default function LoginForm() {
           />
 
           <div className="absolute inset-0 flex flex-col justify-end p-8 bg-linear-to-t from-neutral-950/90 via-neutral-950/20 to-transparent">
-            <h3 className="text-xl font-bold text-white">Дахин тавтай морил</h3>
+            <p className="mt-2 text-xs text-neutral-300 leading-relaxed">
+              <span className="font-semibold text-yellow-500 text-lg">
+                Хаанзаа Сервис ХХК
+              </span>
+              -ийн системд тавтай морил.
+            </p>
             <p className="mt-2 text-xs text-neutral-300 leading-relaxed"></p>
           </div>
         </div>

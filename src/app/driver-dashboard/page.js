@@ -7,6 +7,17 @@ import { ApiError, api } from "@/lib/api";
 import { clearSession, getAccessToken } from "@/lib/session";
 import DashboardProfileCard from "@/components/common/DashboardProfileCard";
 
+const MAX_DAMAGE_IMAGES = 5;
+const MAX_DAMAGE_IMAGE_SIZE = 20 * 1024 * 1024;
+const ALLOWED_DAMAGE_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+]);
+
 export function DriverDashboardContent({ embedded = false }) {
   const router = useRouter();
   const [profile, setProfile] = useState(null);
@@ -156,22 +167,48 @@ export function DriverDashboardContent({ embedded = false }) {
     const files = Array.from(event.target.files || []);
     if (!files.length) return;
 
-    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+    const availableSlots = MAX_DAMAGE_IMAGES - damageImages.length;
+    const validationErrors = [];
 
-    if (!imageFiles.length) {
-      alert("Зөвхөн зураг файл сонгоно уу.");
+    if (availableSlots <= 0) {
+      setErrorMessage("Нэг хүсэлтэд хамгийн ихдээ 5 зураг оруулна.");
       event.target.value = "";
       return;
     }
 
-    const newImages = imageFiles.map((file) => ({
+    const validFiles = files.filter((file) => {
+      if (!ALLOWED_DAMAGE_IMAGE_TYPES.has(file.type)) {
+        validationErrors.push(
+          `${file.name}: зөвшөөрөгдсөн зургийн төрөл биш байна.`,
+        );
+        return false;
+      }
+
+      if (file.size > MAX_DAMAGE_IMAGE_SIZE) {
+        validationErrors.push(`${file.name}: 20MB-аас их хэмжээтэй байна.`);
+        return false;
+      }
+
+      return true;
+    });
+
+    if (validFiles.length > availableSlots) {
+      validationErrors.push(
+        `Нэг хүсэлтэд хамгийн ихдээ ${MAX_DAMAGE_IMAGES} зураг оруулна.`,
+      );
+    }
+
+    const newImages = validFiles.slice(0, availableSlots).map((file) => ({
       id: `${file.name}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`,
       name: file.name,
       url: URL.createObjectURL(file),
       file,
     }));
 
-    setDamageImages((prev) => [...prev, ...newImages]);
+    if (newImages.length) {
+      setDamageImages((prev) => [...prev, ...newImages]);
+    }
+    setErrorMessage(validationErrors.join(" "));
     event.target.value = "";
   };
 
@@ -489,11 +526,11 @@ export function DriverDashboardContent({ embedded = false }) {
                       <Camera size={15} className="inline mr-1" /> Зураг нэмэх
                     </span>
                     <span className="text-[10px] text-slate-400 block mt-0.5">
-                      Камер болон галерейгаас олон зураг боломжтой
+                      JPG, PNG, WEBP, HEIC эсвэл HEIF (нэг бүр 20MB, ихдээ 5)
                     </span>
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/jpeg,image/jpg,image/png,image/webp,image/heic,image/heif"
                       multiple
                       onChange={handleDamageImagesUpload}
                       className="hidden"

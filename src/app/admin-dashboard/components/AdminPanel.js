@@ -56,7 +56,7 @@ function OrderCard({ order }) {
               : "border-amber-200 bg-amber-50 text-amber-700"
           }`}
         >
-          {isConfirmed ? "Батлагдсан" : "Батлагдаагүй"}
+          {isConfirmed ? "Хүлээлгэн өгсөн" : "Хүлээгдэж байна"}
         </span>
       </div>
       <p className="mt-1 text-[11px] text-slate-600">

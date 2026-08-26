@@ -251,13 +251,20 @@ export default function LoginForm() {
 
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
+
+    const code = otpCode.trim();
+    if (!/^\d{4}$/.test(code)) {
+      setErrorMessage("OTP 4 оронтой байна.");
+      return;
+    }
+
     setSubmitting(true);
     setErrorMessage("");
 
     try {
       const response = await api.verifyOtp({
         otpToken,
-        code: otpCode,
+        code,
       });
       const accessToken = response?.data?.accessToken;
       const user = response?.data?.user;
@@ -374,12 +381,14 @@ export default function LoginForm() {
                       inputMode="numeric"
                       required
                       autoComplete="one-time-code"
-                      maxLength={6}
+                      maxLength={4}
                       value={otpCode}
                       onChange={(event) =>
-                        setOtpCode(event.target.value.replace(/\D/g, ""))
+                        setOtpCode(
+                          event.target.value.replace(/\D/g, "").slice(0, 4),
+                        )
                       }
-                      placeholder="000000"
+                      placeholder="0000"
                       className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-center text-lg tracking-[0.35em] text-neutral-900 placeholder-neutral-400 focus:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                     />
                     <button
@@ -397,7 +406,9 @@ export default function LoginForm() {
 
                 <button
                   type="submit"
-                  disabled={submitting || (isOtpSent && otpCode.length !== 6)}
+                  disabled={
+                    submitting || (isOtpSent && !/^\d{4}$/.test(otpCode.trim()))
+                  }
                   className="w-full rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-yellow-400 hover:text-neutral-900 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all mt-2"
                 >
                   {submitting

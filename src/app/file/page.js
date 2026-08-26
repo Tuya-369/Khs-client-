@@ -13,18 +13,6 @@ const DOCUMENTS = [
     fileUrl: "/file/Juram.pdf",
   },
   {
-    id: 1,
-    title: "Цалин хөлсний журам ",
-    category: "Журам",
-    fileUrl: "/file/salary.pdf",
-  },
-  {
-    id: 2,
-    title: "2026 оны хагас жилийн тайлан тайлан",
-    category: "Тайлан",
-    fileUrl: "",
-  },
-  {
     id: 3,
     title: "Чөлөө олгох ",
     category: "Хуудас",

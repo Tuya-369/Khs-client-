@@ -367,7 +367,7 @@ export default function LoginForm() {
                 {isOtpSent && (
                   <div className="space-y-2 rounded-lg border border-yellow-200 bg-yellow-50 p-3">
                     <label className="block text-xs font-medium text-neutral-700">
-                      Бүртгэлтэй утасны дугаар руу илгээсэн 6 оронтой код
+                      Бүртгэлтэй утасны дугаар руу илгээсэн 4 оронтой код
                     </label>
                     <input
                       type="text"

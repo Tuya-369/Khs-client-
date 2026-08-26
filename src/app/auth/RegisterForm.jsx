@@ -86,9 +86,15 @@ export default function RegisterForm() {
         return;
       }
 
+      const code = otpCode.trim();
+      if (!/^\d{4}$/.test(code)) {
+        setErrorMessage("OTP 4 оронтой байна.");
+        return;
+      }
+
       await api.verifyRegistrationOtp({
         phoneNumber: formData.phoneNumber,
-        code: otpCode,
+        code,
       });
 
       setSuccessMessage(
@@ -286,18 +292,20 @@ export default function RegisterForm() {
               {isOtpSent && (
                 <div className="space-y-2 rounded-lg border border-yellow-200 bg-yellow-50 p-3">
                   <label className="block text-xs font-medium text-neutral-700">
-                    Утсанд ирсэн 6 оронтой OTP код
+                    Утсанд ирсэн 4 оронтой OTP код
                   </label>
                   <input
                     type="text"
                     inputMode="numeric"
                     required
-                    maxLength={6}
+                    maxLength={4}
                     value={otpCode}
                     onChange={(event) =>
-                      setOtpCode(event.target.value.replace(/\D/g, ""))
+                      setOtpCode(
+                        event.target.value.replace(/\D/g, "").slice(0, 4),
+                      )
                     }
-                    placeholder="000000"
+                    placeholder="0000"
                     className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-center text-lg tracking-[0.35em] text-neutral-900 placeholder-neutral-400 focus:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                   />
                   <button
@@ -315,7 +323,9 @@ export default function RegisterForm() {
 
               <button
                 type="submit"
-                disabled={submitting || (isOtpSent && otpCode.length !== 6)}
+                disabled={
+                  submitting || (isOtpSent && !/^\d{4}$/.test(otpCode.trim()))
+                }
                 className="w-full rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-yellow-400 hover:text-neutral-900 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all mt-3"
               >
                 {submitting

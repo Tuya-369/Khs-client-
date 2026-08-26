@@ -117,8 +117,25 @@ export default function ProfilePage() {
       }
 
       const response = await api.updateProfile(token, payload);
-      const updatedUser = response?.data?.user ||
-        response?.data || { ...user, ...form };
+      const responseUser = response?.data?.user || response?.data || {};
+      const updatedUser = {
+        ...user,
+        ...responseUser,
+        profileImage:
+          responseUser?.profileImage ||
+          responseUser?.avatarUrl ||
+          payload.profileImage ||
+          user?.profileImage ||
+          user?.avatarUrl ||
+          "",
+        avatarUrl:
+          responseUser?.avatarUrl ||
+          responseUser?.profileImage ||
+          payload.avatarUrl ||
+          user?.avatarUrl ||
+          user?.profileImage ||
+          "",
+      };
       setUser(updatedUser);
       setForm({
         lastName: updatedUser?.lastName || "",

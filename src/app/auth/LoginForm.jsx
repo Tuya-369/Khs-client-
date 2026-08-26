@@ -48,12 +48,18 @@ function ForgotPasswordForm({ onBack }) {
   };
 
   const verifyOtp = async () => {
+    const code = otpCode.trim();
+    if (!/^\d{4}$/.test(code)) {
+      setErrorMessage("OTP 4 оронтой байна.");
+      return;
+    }
+
     setSubmitting(true);
     setErrorMessage("");
     try {
       const response = await api.verifyForgotOtp({
         phoneNumber,
-        code: otpCode,
+        code,
       });
       setResetToken(response?.data?.resetToken || "");
       setStage("password");
@@ -114,18 +120,18 @@ function ForgotPasswordForm({ onBack }) {
             <input
               type="text"
               inputMode="numeric"
-              maxLength={6}
+              maxLength={4}
               value={otpCode}
               onChange={(event) =>
-                setOtpCode(event.target.value.replace(/\D/g, ""))
+                setOtpCode(event.target.value.replace(/\D/g, "").slice(0, 4))
               }
-              placeholder="000000"
+              placeholder="XXXX"
               className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-center text-lg tracking-[0.35em] text-neutral-900 placeholder-neutral-400 focus:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
             />
           </div>
           <button
             type="button"
-            disabled={submitting || otpCode.length !== 6}
+            disabled={submitting || otpCode.length !== 4}
             onClick={verifyOtp}
             className="w-full rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-yellow-400 hover:text-neutral-900 disabled:cursor-not-allowed disabled:opacity-60"
           >
@@ -388,7 +394,7 @@ export default function LoginForm() {
                           event.target.value.replace(/\D/g, "").slice(0, 4),
                         )
                       }
-                      placeholder="0000"
+                      placeholder="XXXX"
                       className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-center text-lg tracking-[0.35em] text-neutral-900 placeholder-neutral-400 focus:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
                     />
                     <button
@@ -406,9 +412,7 @@ export default function LoginForm() {
 
                 <button
                   type="submit"
-                  disabled={
-                    submitting || (isOtpSent && !/^\d{4}$/.test(otpCode.trim()))
-                  }
+                  disabled={submitting || (isOtpSent && otpCode.length !== 4)}
                   className="w-full rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-yellow-400 hover:text-neutral-900 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all mt-2"
                 >
                   {submitting

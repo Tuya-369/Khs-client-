@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { Calculator, Clock, Wallet } from "lucide-react";
+import { Clock, Wallet } from "lucide-react";
 
 const DAY_COEFFICIENTS = {
   dayShift: 12,
@@ -29,14 +29,14 @@ function formatMNT(value) {
 }
 
 export default function SalaryCalc() {
-  const [hourlyRate, setHourlyRate] = useState(19000);
+  const [hourlyRate, setHourlyRate] = useState(14000);
   const [dayShiftDays, setDayShiftDays] = useState(10);
   const [nightShiftDays, setNightShiftDays] = useState(0);
   const [otDayDays, setOtDayDays] = useState(0);
   const [otNightDays, setOtNightDays] = useState(0);
   const [holidayDays, setHolidayDays] = useState(0);
   const [travelHours, setTravelHours] = useState(10);
-  const [fond, setFond] = useState(20000);
+  const [fond, setFond] = useState(0);
 
   const result = useMemo(() => {
     const dayHours = Math.max(0, dayShiftDays) * DAY_COEFFICIENTS.dayShift;
@@ -226,7 +226,7 @@ export default function SalaryCalc() {
         </div>
       </div>
 
-      {/* 3. Бодолтын дэлгэрэнгүй ба Эцсийн Дүн */}
+      {/* Бодолтын дэлгэрэнгүй ба Гарт олгох цалин */}
       <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-2 text-xs">
         <div className="flex justify-between items-center text-slate-600">
           <span>Нийт ажилласан цаг:</span>
@@ -236,7 +236,7 @@ export default function SalaryCalc() {
         </div>
 
         <div className="flex justify-between items-center text-slate-600">
-          <span>Нийт бодогдсон (Gross):</span>
+          <span>Нийт бодогдсон :</span>
           <span className="font-bold text-slate-900 tabular-nums">
             {formatMNT(result.gross)}
           </span>
@@ -247,7 +247,7 @@ export default function SalaryCalc() {
         {/* Суутгалууд */}
         <div className="space-y-1 text-xs">
           <div className="flex justify-between items-center text-slate-500">
-            <span>НДШ (11.5%):</span>
+            <span>НДШ :</span>
             <span className="font-semibold text-rose-500 tabular-nums">
               - {formatMNT(result.ndsh)}
             </span>
@@ -268,17 +268,17 @@ export default function SalaryCalc() {
           </div>
         </div>
 
-        {/* Гарт олгох цонх */}
-        <div className="mt-3 flex items-center justify-between rounded-xl bg-slate-900 p-3.5 text-white shadow-xs">
-          <div className="flex items-center gap-2">
-            <Wallet className="h-5 w-5 text-indigo-400" />
-            <span className="text-xs font-medium text-slate-300">
-              Гарт олгох цалин:
+        {/* Гарт олгох цалин - Суутгалуудтайгаа нэгэн ижил загвараар */}
+        <div className="pt-2 border-t border-slate-200 mt-2">
+          <div className="flex justify-between items-center text-xs">
+            <div className="flex items-center gap-1.5 font-bold text-slate-800">
+              <Wallet className="h-4 w-4 text-indigo-600" />
+              <span>Гарт олгох цалин:</span>
+            </div>
+            <span className="font-extrabold text-indigo-600 text-sm tabular-nums">
+              {formatMNT(result.net)}
             </span>
           </div>
-          <span className="text-lg font-extrabold text-indigo-400 tabular-nums">
-            {formatMNT(result.net)}
-          </span>
         </div>
       </div>
     </div>

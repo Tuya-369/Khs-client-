@@ -72,6 +72,12 @@ export default function Header() {
           >
             Баримт бичиг
           </Link>
+          <Link
+            href="/GraduationCap"
+            className="hover:text-yellow-500 transition-colors"
+          >
+            Сургалт
+          </Link>
         </nav>
 
         <div className="flex items-center space-x-5 text-gray-700 relative">

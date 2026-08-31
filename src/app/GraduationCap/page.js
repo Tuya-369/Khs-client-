@@ -35,17 +35,8 @@ export default function GraduationCapPage() {
   return (
     <div className="min-h-screen bg-white px-4 py-6 text-slate-800 md:bg-slate-50 md:py-10">
       <div className="mx-auto max-w-6xl">
-        {/* Буцах товч */}
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition-colors hover:text-slate-900 md:mb-6 md:rounded-xl md:border md:border-slate-200 md:bg-white md:px-4 md:py-2 md:shadow-sm"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Буцах
-        </button>
+        <button></button>
 
-        {/* Хуудасны гарчиг */}
         <div className="mb-6 flex flex-col gap-2 md:mb-8">
           <h1 className="text-2xl font-bold text-slate-900 md:text-4xl">
             Сургалт
@@ -57,7 +48,6 @@ export default function GraduationCapPage() {
         </div>
 
         <div className="grid gap-8 lg:grid-cols-[1.45fr_0.85fr]">
-          {/* Видео тоглуулагч хэсэг */}
           <div className="space-y-4">
             <div className="overflow-hidden rounded-2xl bg-black md:rounded-3xl">
               <video
@@ -69,12 +59,7 @@ export default function GraduationCapPage() {
               />
             </div>
 
-            {/* Одоо үзэж буй видеоны мэдээлэл */}
             <div className="space-y-2 py-2">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-orange-600">
-                <PlayCircle className="h-4 w-4" />
-                Одоо үзэж байна
-              </div>
               <h2 className="text-lg font-bold text-slate-900 md:text-2xl">
                 {activeVideo.title}
               </h2>
@@ -84,7 +69,6 @@ export default function GraduationCapPage() {
             </div>
           </div>
 
-          {/* Видео жагсаалт хэсэг (Илүү энгийн текст хэлбэртэй) */}
           <aside className="space-y-4">
             <div className="border-t border-slate-100 pt-6 lg:border-t-0 lg:pt-0">
               <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-900">

@@ -9,7 +9,7 @@ const PARTNERS = [
     id: "Bluefin-Catering",
     title: "Bluefin-Catering",
     description:
-      "Оюу Толгой төслийн талбайд үйл ажиллагаа явуулдаг ба 500 гаруй чадварлаг хамт олноор багаа бүрдүүлэн өдөр бүр ойролцоогоор 15,000 орчим уурхайчдад эрүүл, амт чанартай, халуун хоолоор ханган ажилладаг.",
+      "Bluefin Catering-ийн хоол, үйлчилгээний тооцоог бэлэн мөнгө шаардахгүйгээр байгууллагын токеноороо  шууд хийх боломжийг бүрдүүллээ.",
     logo: "https://res.cloudinary.com/hfroefns/image/upload/v1786354835/547afbda-79c6-481f-9a14-9937da2d2d02_fitg1z.png",
     url: "https://www.facebook.com/Bluefincatering",
   },
@@ -17,7 +17,7 @@ const PARTNERS = [
     id: "we-are-miners",
     title: "We Are Miners",
     description:
-      "Уурхайчдын өдөр тутмын хэрэгцээт бүтээгдэхүүн, хувцас, куртка, хамгаалах хэрэгсэл, Фосфортдог каскны бүснүүд мерчантарыг худалдаг.",
+      "Уурхайчдын аюулгүй байдал, өдөр тутмын тусгай хувцас, каскны бүс болон мерч бүтээгдэхүүнийг залуустаа шууд нийлүүлэх замаар We Are Miners брендтэй хамтран ажиллаж байна.",
     logo: "https://res.cloudinary.com/hfroefns/image/upload/v1786350688/500763936_122134973504759573_7525755744609605248_n-removebg-preview_gjuj1r.png",
     url: "https://www.facebook.com/profile.php?id=61572787193323",
   },
@@ -25,7 +25,7 @@ const PARTNERS = [
     id: "OYUT PIZZA UHG LLC",
     title: "Oyut Pizza",
     description:
-      "Оюу Толгой төслийн талбайд үйл ажиллагаа явуулдаг ба уурхайчдад зориулсан амттай пицца, хоол хүргэдэг.",
+      "Оюу Толгойн талбайн уурхайчдад зориулсан амтат пицца үйлчилгээг цуглуулсан токеноороо бэлэн мөнгөний оронд суутгуулан авах боломжийг бүрдүүллээ.",
     logo: "https://res.cloudinary.com/hfroefns/image/upload/v1786350937/528039625_1293939149185084_471515427446860816_n-removebg-preview_vv3tbb.png",
     url: "https://www.facebook.com/uhgllc",
   },

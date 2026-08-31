@@ -24,12 +24,6 @@ const DOCUMENTS = [
     category: "Хуудас",
     fileUrl: "/file/AnnualLeave.pdf",
   },
-  {
-    id: 5,
-    title: "Илүү цаг",
-    category: "Хуудас",
-    fileUrl: "/file/Overtime.pdf",
-  },
 ];
 
 export default function FilePage() {
@@ -81,17 +75,6 @@ export default function FilePage() {
                   >
                     <Eye className="w-4 h-4" />
                     Унших
-                  </a>
-
-                  <a
-                    href={doc.fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    download
-                    className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 font-medium"
-                  >
-                    <Download className="w-4 h-4" />
-                    Татах
                   </a>
                 </div>
               </div>

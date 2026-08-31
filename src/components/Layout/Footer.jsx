@@ -41,7 +41,7 @@ const contactItems = [
   {
     id: 3,
     icon: <FaMapMarkerAlt size={11} />,
-    text: "Industrial Street, 3rd Khoroo, Khan-Uul District, Ulaanbaatar 17060, Mongolia\nLocated opposite Gobi Corporation factory.",
+    text: "Хан-Уул дүүрэг, үйлдвэрчний гудамж  3-р хороо, Хаанзаа сервис ХХК",
     href: null,
   },
 ];
@@ -65,7 +65,7 @@ export default function Footer() {
 
           <div>
             <h4 className="text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-400 mb-3.5">
-              Contact Us
+              Холбоо барих
             </h4>
             <ul className="flex flex-col gap-2.5">
               {contactItems.map(({ id, icon, text, href }) => (
@@ -93,7 +93,7 @@ export default function Footer() {
 
           <div>
             <h4 className="text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-400 mb-3.5">
-              Social Media
+              Сошиал хаяг
             </h4>
             <div className="flex gap-4 items-center">
               {socialLinks.map(({ label, href, icon }) => (
@@ -111,12 +111,7 @@ export default function Footer() {
             </div>
           </div>
         </div>
-        <div className="border-t border-neutral-200/40 pt-6 flex justify-between items-center text-[11px] text-neutral-400">
-          <span>
-            © {new Date().getFullYear()} Khaanzaa Service LLC. Бүх эрх хуулиар
-            хамгаалагдсан.
-          </span>
-        </div>
+        <div className="border-t border-neutral-200/40 flex justify-between items-center text-[11px] text-neutral-400"></div>
       </div>
     </footer>
   );

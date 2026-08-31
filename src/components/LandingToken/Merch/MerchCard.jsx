@@ -122,7 +122,7 @@ export default function MerchCard({
         <div>
           {!hideTopTexts && (
             <p className="text-xs uppercase tracking-[0.25em] text-amber-600 font-medium">
-              Merch Store
+              Бүтээгдэхүүн
             </p>
           )}
         </div>
@@ -131,9 +131,9 @@ export default function MerchCard({
           aria-label="Бүтээгдэхүүний ангилал"
         >
           {[
-            ["all", "all"],
-            ["merch", "Merch"],
-            ["giftcard", "Gift card"],
+            ["all", "Бүгд"],
+            ["merch", "Бүтээгдэхүүн"],
+            ["giftcard", "Бэлгийн карт "],
           ].map(([value, label]) => {
             const isActive = category === value;
             const className = `border-b-2 px-0.5 py-1.5 text-xs font-medium transition-colors sm:text-sm ${

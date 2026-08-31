@@ -349,15 +349,6 @@ export function DriverDashboardContent({ embedded = false }) {
         )}
 
         <div className="space-y-4">
-          <div className="border-b border-slate-200 pb-3">
-            <h3 className="text-base font-bold text-slate-900">
-              Тээврийн хэрэгсэл болон сэлбэг
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Хуваарилагдсан машинаа сонгож, эвдрэлтэй сэлбэгийг тэмдэглэнэ үү.
-            </p>
-          </div>
-
           <div className="flex gap-2">
             <div className="relative min-w-0 flex-1">
               <Search

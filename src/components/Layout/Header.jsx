@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 import { ShoppingBag, User, Menu, X } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -16,21 +16,7 @@ export default function Header() {
   const [isAuthenticated, setIsAuthenticated] = useState(() =>
     Boolean(getAccessToken()),
   );
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const userMenuRef = useRef(null);
   const { totalItems } = useCart();
-
-  useEffect(() => {
-    const handleOutsideClick = (event) => {
-      if (!userMenuRef.current) return;
-      if (!userMenuRef.current.contains(event.target)) {
-        setIsUserMenuOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
-  }, []);
 
   const handleLogout = async () => {
     const token = getAccessToken();
@@ -41,7 +27,6 @@ export default function Header() {
     } finally {
       clearSession();
       setIsAuthenticated(false);
-      setIsUserMenuOpen(false);
       router.push("/auth");
     }
   };
@@ -52,7 +37,7 @@ export default function Header() {
       return;
     }
 
-    setIsUserMenuOpen((prev) => !prev);
+    router.push("/profile");
   };
 
   return (
@@ -71,32 +56,26 @@ export default function Header() {
 
         <nav className="hidden lg:flex items-center space-x-10 text-xs font-bold tracking-widest text-gray-600 uppercase">
           <Link href="/" className="hover:text-yellow-500 transition-colors">
-            Home
+            Буцах
           </Link>
 
           <Link
             href="/merch"
             className="hover:text-yellow-500 transition-colors"
           >
-            Merchandise
-          </Link>
-          <Link
-            href="/#contact"
-            className="hover:text-yellow-500 transition-colors"
-          >
-            Contact
+            Бүтээгдэхүүн
           </Link>
 
           <Link
             href="/file"
             className="hover:text-yellow-500 transition-colors"
           >
-            File
+            Баримт бичиг
           </Link>
         </nav>
 
         <div className="flex items-center space-x-5 text-gray-700 relative">
-          <div className="relative" ref={userMenuRef}>
+          <div className="relative">
             <button
               type="button"
               onClick={handleUserIconClick}
@@ -105,25 +84,6 @@ export default function Header() {
             >
               <User size={20} />
             </button>
-
-            {isUserMenuOpen && isAuthenticated && (
-              <div className="absolute right-0 mt-2 w-40 bg-white border border-slate-200 rounded-lg shadow-lg py-1 z-50">
-                <Link
-                  href="/profile"
-                  onClick={() => setIsUserMenuOpen(false)}
-                  className="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
-                >
-                  Profile
-                </Link>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="w-full text-left px-3 py-2 text-sm text-rose-600 hover:bg-rose-50"
-                >
-                  Logout
-                </button>
-              </div>
-            )}
           </div>
 
           <button

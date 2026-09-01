@@ -108,10 +108,61 @@ function PartRequestCard({ request }) {
   );
 }
 
+const feedbackStatus = {
+  PENDING: {
+    label: "Хүлээгдэж байна",
+    className: "border-amber-200 bg-amber-50 text-amber-700",
+  },
+  RESOLVED: {
+    label: "Шийдвэрлэсэн",
+    className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  },
+  SUSPENDED: {
+    label: "Түдгэлзүүлсэн",
+    className: "border-slate-200 bg-slate-100 text-slate-700",
+  },
+};
+
+function FeedbackCard({ feedback }) {
+  const status = feedbackStatus[feedback?.status] || feedbackStatus.PENDING;
+
+  return (
+    <article className="border-b border-slate-100 py-3 first:pt-0 last:border-b-0 last:pb-0">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-xs font-bold text-slate-900">
+            {`${feedback?.lastName || ""} ${feedback?.firstName || ""}`.trim() ||
+              "Тодорхойгүй"}
+          </p>
+          {(feedback?.sapId || feedback?.phoneNumber) && (
+            <p className="mt-1 text-[11px] text-slate-600">
+              {feedback?.sapId && <>SAP: {feedback.sapId}</>}
+              {feedback?.sapId && feedback?.phoneNumber && " · "}
+              {feedback?.phoneNumber && <>Утас: {feedback.phoneNumber}</>}
+            </p>
+          )}
+        </div>
+        <span
+          className={`shrink-0 rounded-md border px-2 py-0.5 text-[10px] font-semibold ${status.className}`}
+        >
+          {status.label}
+        </span>
+      </div>
+      <p className="mt-2 whitespace-pre-wrap text-[11px] leading-5 text-slate-600">
+        {feedback?.message || "-"}
+      </p>
+      <p className="mt-1 text-[11px] text-slate-400">
+        Илгээсэн: {formatDate(feedback?.createdAt)}
+      </p>
+    </article>
+  );
+}
+
 export default function AdminPanel() {
   const [pendingOrders, setPendingOrders] = useState([]);
   const [reviewedOrders, setReviewedOrders] = useState([]);
   const [partRequests, setPartRequests] = useState([]);
+  const [feedbackItems, setFeedbackItems] = useState([]);
   const [activeView, setActiveView] = useState("merch");
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -124,13 +175,16 @@ export default function AdminPanel() {
       setLoading(true);
       setErrorMessage("");
       try {
-        const [merchResponse, requestsResponse] = await Promise.all([
-          api.getAdminPanelOrders(token),
-          api.getAdminRequests(token, { page: 1, limit: 100 }),
-        ]);
+        const [merchResponse, requestsResponse, feedbackResponse] =
+          await Promise.all([
+            api.getAdminPanelOrders(token),
+            api.getAdminRequests(token, { page: 1, limit: 100 }),
+            api.getHrFeedback(token),
+          ]);
         setPendingOrders(merchResponse?.data?.pendingOrders || []);
         setReviewedOrders(merchResponse?.data?.reviewedOrders || []);
         setPartRequests(requestsResponse?.data?.items || []);
+        setFeedbackItems(feedbackResponse?.data?.items || []);
       } catch (error) {
         setErrorMessage(
           error instanceof ApiError
@@ -169,6 +223,7 @@ export default function AdminPanel() {
         {[
           ["merch", "Merch", pendingOrders.length + reviewedOrders.length],
           ["parts", "Сэлбэг", partRequests.length],
+          ["hr", "HR", feedbackItems.length],
         ].map(([value, label, count]) => (
           <button
             key={value}
@@ -207,7 +262,7 @@ export default function AdminPanel() {
                 </p>
               )}
             </section>
-          ) : (
+          ) : activeView === "parts" ? (
             <section className="rounded-xl border border-slate-200 bg-white p-4">
               {sortOrders(partRequests).length ? (
                 sortOrders(partRequests).map((request) => (
@@ -216,6 +271,18 @@ export default function AdminPanel() {
               ) : (
                 <p className="py-6 text-center text-xs text-slate-400">
                   Сэлбэгийн хүсэлт алга.
+                </p>
+              )}
+            </section>
+          ) : (
+            <section className="rounded-xl border border-slate-200 bg-white p-4">
+              {sortOrders(feedbackItems).length ? (
+                sortOrders(feedbackItems).map((feedback) => (
+                  <FeedbackCard key={feedback.id} feedback={feedback} />
+                ))
+              ) : (
+                <p className="py-6 text-center text-xs text-slate-400">
+                  Санал хүсэлт алга.
                 </p>
               )}
             </section>

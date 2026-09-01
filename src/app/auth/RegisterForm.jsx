@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 
 const PROJECT_NAME_OPTIONS = [
@@ -32,6 +33,9 @@ export default function RegisterForm() {
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState("");
   const [secondsLeft, setSecondsLeft] = useState(0);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] =
+    useState(false);
 
   useEffect(() => {
     if (!isOtpSent || secondsLeft <= 0) return;
@@ -263,29 +267,67 @@ export default function RegisterForm() {
                   <label className="block text-xs font-medium text-neutral-700 mb-1">
                     Нууц үг
                   </label>
-                  <input
-                    type="password"
-                    name="password"
-                    required
-                    value={formData.password}
-                    onChange={handleChange}
-                    placeholder="••••••••"
-                    className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 focus:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-400/40 transition-all"
-                  />
+                  <div className="relative">
+                    <input
+                      type={isPasswordVisible ? "text" : "password"}
+                      name="password"
+                      required
+                      value={formData.password}
+                      onChange={handleChange}
+                      placeholder="••••••••"
+                      className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 pr-10 text-sm text-neutral-900 placeholder-neutral-400 focus:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-400/40 transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setIsPasswordVisible((visible) => !visible)
+                      }
+                      aria-label={
+                        isPasswordVisible ? "Нууц үг нуух" : "Нууц үг харуулах"
+                      }
+                      className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-neutral-500 hover:text-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                    >
+                      {isPasswordVisible ? (
+                        <EyeOff size={18} />
+                      ) : (
+                        <Eye size={18} />
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-neutral-700 mb-1">
                     Баталгаажуулах
                   </label>
-                  <input
-                    type="password"
-                    name="confirmPassword"
-                    required
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    placeholder="••••••••"
-                    className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 focus:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-400/40 transition-all"
-                  />
+                  <div className="relative">
+                    <input
+                      type={isConfirmPasswordVisible ? "text" : "password"}
+                      name="confirmPassword"
+                      required
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      placeholder="••••••••"
+                      className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 pr-10 text-sm text-neutral-900 placeholder-neutral-400 focus:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-400/40 transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setIsConfirmPasswordVisible((visible) => !visible)
+                      }
+                      aria-label={
+                        isConfirmPasswordVisible
+                          ? "Нууц үг нуух"
+                          : "Нууц үг харуулах"
+                      }
+                      className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-neutral-500 hover:text-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                    >
+                      {isConfirmPasswordVisible ? (
+                        <EyeOff size={18} />
+                      ) : (
+                        <Eye size={18} />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
 

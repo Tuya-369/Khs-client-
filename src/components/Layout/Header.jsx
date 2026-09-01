@@ -144,26 +144,6 @@ export default function Header() {
             >
               File
             </Link>
-
-            {isAuthenticated && (
-              <>
-                <Link
-                  href="/profile"
-                  className="hover:text-black py-2 transition-colors"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  Profile
-                </Link>
-
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="text-left py-2 text-rose-600 hover:text-rose-700 transition-colors"
-                >
-                  Logout
-                </button>
-              </>
-            )}
           </div>
         )}
       </header>

@@ -345,6 +345,16 @@ export const api = {
   deleteCalendarNote: (token, id) =>
     apiRequest(`/api/calendar/notes/${id}`, { method: "DELETE", token }),
 
+  createFeedback: (token, body) =>
+    apiRequest("/api/feedback", { method: "POST", token, body }),
+  getHrFeedback: (token) => apiRequest("/api/feedback", { token }),
+  updateFeedbackStatus: (token, id, status) =>
+    apiRequest(`/api/feedback/${id}/status`, {
+      method: "PATCH",
+      token,
+      body: { status },
+    }),
+
   getAdminSummary: (token) =>
     apiRequest("/api/dashboard/admin-summary", { token }),
   getTokenSummary: (token) =>

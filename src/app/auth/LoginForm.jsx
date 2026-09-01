@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { saveSession } from "@/lib/session";
 
@@ -212,6 +213,7 @@ export default function LoginForm() {
   const [otpToken, setOtpToken] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [secondsLeft, setSecondsLeft] = useState(0);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   useEffect(() => {
     if (!isOtpSent || secondsLeft <= 0) return;
@@ -366,15 +368,33 @@ export default function LoginForm() {
                       Нууц үгээ мартсан
                     </button>
                   </div>
-                  <input
-                    type="password"
-                    name="password"
-                    required
-                    value={loginData.password}
-                    onChange={handleChange}
-                    placeholder="••••••••"
-                    className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 focus:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-400/40 transition-all"
-                  />
+                  <div className="relative">
+                    <input
+                      type={isPasswordVisible ? "text" : "password"}
+                      name="password"
+                      required
+                      value={loginData.password}
+                      onChange={handleChange}
+                      placeholder="••••••••"
+                      className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 pr-10 text-sm text-neutral-900 placeholder-neutral-400 focus:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-400/40 transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setIsPasswordVisible((visible) => !visible)
+                      }
+                      aria-label={
+                        isPasswordVisible ? "Нууц үг нуух" : "Нууц үг харуулах"
+                      }
+                      className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-neutral-500 hover:text-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-400/40"
+                    >
+                      {isPasswordVisible ? (
+                        <EyeOff size={18} />
+                      ) : (
+                        <Eye size={18} />
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 {isOtpSent && (

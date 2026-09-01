@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ApiError, api } from "@/lib/api";
 import { clearSession, getAccessToken, saveSession } from "@/lib/session";
 import {
@@ -18,9 +18,12 @@ import AdminDashboard from "../admin-dashboard/components/AdminDashboard";
 import AdminPanel from "../admin-dashboard/components/AdminPanel";
 import ProfileSidebar from "./components/ProfileSidebar";
 import { DriverDashboardContent } from "../driver-dashboard/page";
+import FeedbackPage from "../feedback/Page";
+import HrDashboardPage from "../hr-dashboard/page";
 
 export default function ProfilePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [user, setUser] = useState(null);
   const [merchOrders, setMerchOrders] = useState([]);
@@ -48,12 +51,15 @@ export default function ProfilePage() {
     text: "",
   });
 
-  /*
-   * dashboard
-   * profile
-   * salary
-   */
-  const [activeTab, setActiveTab] = useState("profile");
+  const profileTabs = ["dashboard", "profile", "salary", "feedback"];
+  const requestedTab = searchParams.get("tab");
+  const activeTab = profileTabs.includes(requestedTab)
+    ? requestedTab
+    : "profile";
+
+  const setActiveTab = (tab) => {
+    router.push(`/profile?tab=${tab}`, { scroll: false });
+  };
 
   useEffect(() => {
     const initPage = async () => {
@@ -314,7 +320,7 @@ export default function ProfilePage() {
   ].includes(user?.role);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] p-3 text-slate-900 antialiased sm:p-5 lg:p-8">
+    <div className="bg-[#F8FAFC] p-3 text-slate-900 antialiased sm:p-5 lg:p-8">
       <div className="mx-auto max-w-7xl">
         {/* ERROR */}
         {errorMessage && (
@@ -483,7 +489,8 @@ export default function ProfilePage() {
                     !passwordResetToken && (
                       <div className="flex flex-col gap-3 border-t border-amber-100 bg-amber-50/50 px-5 py-4 sm:flex-row sm:items-end sm:px-6">
                         <label className="min-w-0 flex-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-700">
-                          Утас руу ирсэн OTP код
+                          Бүртгэлтэй утасны дугаарлуу баталгаажуулах код
+                          явууллаа.
                           <input
                             type="text"
                             inputMode="numeric"
@@ -533,13 +540,11 @@ export default function ProfilePage() {
                 </section>
 
                 {/* Orders */}
-                <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                {/* <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                   <div>
-                    <h3 className="font-bold text-slate-900">Миний захиалга</h3>
-
-                    <p className="mt-1 text-xs text-slate-500">
-                      MERCH бүтээгдэхүүний захиалгын мэдээлэл.
-                    </p>
+                    <h3 className="font-bold text-slate-900">
+                      Миний захиалсан бараа
+                    </h3>
                   </div>
 
                   {merchOrders.length === 0 ? (
@@ -568,7 +573,7 @@ export default function ProfilePage() {
                       ))}
                     </div>
                   )}
-                </section>
+                </section> */}
               </div>
             )}
 
@@ -581,23 +586,14 @@ export default function ProfilePage() {
 
                 {user?.role === "ADMIN_PANEL" && <AdminPanel />}
 
+                {user?.role === "HR" && <HrDashboardPage embedded />}
+
                 {user?.role !== "DRIVER" &&
                   hasDashboard &&
+                  user?.role !== "HR" &&
                   user?.role !== "ADMIN_PANEL" && (
                     <AdminDashboard currentUser={user} />
                   )}
-
-                {!hasDashboard && (
-                  <section className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-                    <h2 className="text-lg font-bold text-slate-900">
-                      Нүүр хуудас
-                    </h2>
-
-                    <p className="mt-1 text-sm text-slate-500">
-                      Тавтай морилно уу.
-                    </p>
-                  </section>
-                )}
               </div>
             )}
 
@@ -605,10 +601,6 @@ export default function ProfilePage() {
               <section className="space-y-5">
                 <div className="border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
                   <div className="flex items-start gap-3">
-                    <div className="grid size-11 shrink-0 place-items-center rounded-xl bg-indigo-50 text-indigo-600">
-                      <span className="text-lg">₮</span>
-                    </div>
-
                     <div>
                       <h2 className="mt-1 text-xl font-bold text-slate-900">
                         Цалин тооцоолох
@@ -626,6 +618,12 @@ export default function ProfilePage() {
                   <SalaryCalc />
                 </div>
               </section>
+            )}
+
+            {activeTab === "feedback" && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                <FeedbackPage />
+              </div>
             )}
           </main>
         </div>

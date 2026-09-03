@@ -5,12 +5,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ApiError, api } from "@/lib/api";
 import { clearSession, getAccessToken, saveSession } from "@/lib/session";
 import {
-  BriefcaseBusiness,
+  Check,
+  ChevronRight,
   KeyRound,
+  Lock,
   Mail,
   Pencil,
   Phone,
+  ShieldCheck,
   UserRound,
+  X,
 } from "lucide-react";
 
 import SalaryCalc from "./components/SalaryCalc";
@@ -30,8 +34,10 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const [isEditing, setIsEditing] = useState(false);
+  // Засаж буй хэсэг: 'info' | 'password' | null
+  const [activeEditSection, setActiveEditSection] = useState(null);
   const [saving, setSaving] = useState(false);
+
   const [passwordOtp, setPasswordOtp] = useState("");
   const [passwordResetToken, setPasswordResetToken] = useState("");
   const [isPasswordOtpSent, setIsPasswordOtpSent] = useState(false);
@@ -78,7 +84,6 @@ export default function ProfilePage() {
 
         try {
           const ordersResponse = await api.getMyMerchOrders(token);
-
           setMerchOrders(ordersResponse?.data || []);
         } catch {
           setMerchOrders([]);
@@ -111,150 +116,6 @@ export default function ProfilePage() {
     initPage();
   }, [router]);
 
-  const handleSave = async () => {
-    const token = getAccessToken();
-
-    if (!token) {
-      router.replace("/auth");
-      return;
-    }
-
-    if (form.newPassword && form.newPassword !== form.confirmPassword) {
-      setMessage({
-        type: "error",
-        text: "Шинэ нууц үг хоорондоо таарахгүй байна.",
-      });
-      return;
-    }
-
-    if (form.newPassword && !passwordResetToken && !isPasswordOtpSent) {
-      if (!user?.phoneNumber) {
-        setMessage({
-          type: "error",
-          text: "Бүртгэлтэй утасны дугаар олдсонгүй.",
-        });
-        return;
-      }
-
-      setSaving(true);
-      try {
-        await api.forgotPassword({ phoneNumber: user.phoneNumber });
-        setMessage({
-          type: "success",
-          text: `${user.phoneNumber} дугаар руу баталгаажуулах код илгээлээ.`,
-        });
-        setIsPasswordOtpSent(true);
-      } catch (error) {
-        setMessage({
-          type: "error",
-          text:
-            error instanceof ApiError
-              ? error.message
-              : "Баталгаажуулах код илгээж чадсангүй.",
-        });
-      } finally {
-        setSaving(false);
-      }
-      return;
-    }
-
-    if (form.newPassword && !passwordResetToken) {
-      setMessage({
-        type: "error",
-        text: "Эхлээд OTP кодоо баталгаажуулна уу.",
-      });
-      return;
-    }
-
-    setSaving(true);
-
-    try {
-      const payload = {
-        lastName: form.lastName?.trim() || "",
-        firstName: form.firstName?.trim() || "",
-        email: form.email?.trim() || "",
-        phoneNumber: form.phoneNumber?.trim() || "",
-        additionalPhoneNumber: form.additionalPhoneNumber?.trim() || "",
-      };
-
-      if (form.newPassword?.trim() && passwordResetToken) {
-        await api.resetPassword({
-          resetToken: passwordResetToken,
-          password: form.newPassword.trim(),
-          confirmPassword: form.confirmPassword.trim(),
-        });
-      }
-
-      const response = await api.updateProfile(token, payload);
-
-      const responseUser = response?.data?.user || response?.data || {};
-
-      const updatedUser = {
-        ...user,
-        ...responseUser,
-
-        profileImage:
-          responseUser?.profileImage ||
-          responseUser?.avatarUrl ||
-          payload.profileImage ||
-          user?.profileImage ||
-          user?.avatarUrl ||
-          "",
-
-        avatarUrl:
-          responseUser?.avatarUrl ||
-          responseUser?.profileImage ||
-          payload.avatarUrl ||
-          user?.avatarUrl ||
-          user?.profileImage ||
-          "",
-      };
-
-      setUser(updatedUser);
-
-      setForm({
-        lastName: updatedUser?.lastName || "",
-        firstName: updatedUser?.firstName || "",
-        email: updatedUser?.email || "",
-        phoneNumber: updatedUser?.phoneNumber || "",
-        additionalPhoneNumber:
-          updatedUser?.additionalPhoneNumber ||
-          updatedUser?.secondaryPhoneNumber ||
-          "",
-        newPassword: "",
-        confirmPassword: "",
-      });
-      setPasswordOtp("");
-      setPasswordResetToken("");
-      setIsPasswordOtpSent(false);
-
-      saveSession(token, updatedUser);
-
-      setIsEditing(false);
-
-      setMessage({
-        type: "success",
-        text: "Амжилттай хадгалагдлаа.",
-      });
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        clearSession();
-        router.replace("/auth");
-        return;
-      }
-
-      setMessage({
-        type: "error",
-        text:
-          error instanceof ApiError
-            ? error.message
-            : "Профайл хадгалах үед алдаа гарлаа.",
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handleCancelEdit = () => {
     setForm({
       lastName: user?.lastName || "",
@@ -266,15 +127,112 @@ export default function ProfilePage() {
       newPassword: "",
       confirmPassword: "",
     });
-    setIsEditing(false);
+    setActiveEditSection(null);
     setPasswordOtp("");
     setPasswordResetToken("");
     setIsPasswordOtpSent(false);
+    setMessage({ type: "", text: "" });
+  };
+
+  const handleSaveInfo = async () => {
+    const token = getAccessToken();
+    if (!token) {
+      router.replace("/auth");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload = {
+        lastName: form.lastName?.trim() || "",
+        firstName: form.firstName?.trim() || "",
+        email: form.email?.trim() || "",
+        phoneNumber: form.phoneNumber?.trim() || "",
+        additionalPhoneNumber: form.additionalPhoneNumber?.trim() || "",
+      };
+
+      const response = await api.updateProfile(token, payload);
+      const responseUser = response?.data?.user || response?.data || {};
+
+      const updatedUser = {
+        ...user,
+        ...responseUser,
+      };
+
+      setUser(updatedUser);
+      saveSession(token, updatedUser);
+      setActiveEditSection(null);
+      setMessage({
+        type: "success",
+        text: "Хувийн мэдээлэл амжилттай шинэчлэгдлээ.",
+      });
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        clearSession();
+        router.replace("/auth");
+        return;
+      }
+      setMessage({
+        type: "error",
+        text:
+          error instanceof ApiError
+            ? error.message
+            : "Мэдээлэл хадгалахад алдаа гарлаа.",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRequestPasswordReset = async () => {
+    if (!form.newPassword || !form.confirmPassword) {
+      setMessage({
+        type: "error",
+        text: "Шинэ нууц үгээ бүрэн оруулна уу.",
+      });
+      return;
+    }
+
+    if (form.newPassword !== form.confirmPassword) {
+      setMessage({
+        type: "error",
+        text: "Шинэ нууц үг хоорондоо таарахгүй байна.",
+      });
+      return;
+    }
+
+    if (!user?.phoneNumber) {
+      setMessage({
+        type: "error",
+        text: "Бүртгэлтэй утасны дугаар олдсонгүй.",
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await api.forgotPassword({ phoneNumber: user.phoneNumber });
+      setMessage({
+        type: "success",
+        text: `${user.phoneNumber} дугаар руу баталгаажуулах код илгээлээ.`,
+      });
+      setIsPasswordOtpSent(true);
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text:
+          error instanceof ApiError
+            ? error.message
+            : "Баталгаажуулах код илгээж чадсангүй.",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleVerifyPasswordOtp = async () => {
     if (!/^\d{4}$/.test(passwordOtp)) {
-      setMessage({ type: "error", text: "OTP 4 оронтой байна." });
+      setMessage({ type: "error", text: "OTP код 4 оронтой байна." });
       return;
     }
 
@@ -287,7 +245,7 @@ export default function ProfilePage() {
       setPasswordResetToken(response?.data?.resetToken || "");
       setMessage({
         type: "success",
-        text: "Код баталгаажлаа. Одоо хадгалах товчийг дарна уу.",
+        text: "Код баталгаажлаа. Одоо шинэчлэх товчийг дарж нууц үгээ хадгална уу.",
       });
     } catch (error) {
       setMessage({
@@ -302,10 +260,49 @@ export default function ProfilePage() {
     }
   };
 
+  const handleSavePassword = async () => {
+    if (!passwordResetToken) {
+      setMessage({
+        type: "error",
+        text: "Эхлээд OTP кодоо баталгаажуулна уу.",
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await api.resetPassword({
+        resetToken: passwordResetToken,
+        password: form.newPassword.trim(),
+        confirmPassword: form.confirmPassword.trim(),
+      });
+
+      setForm((prev) => ({ ...prev, newPassword: "", confirmPassword: "" }));
+      setPasswordOtp("");
+      setPasswordResetToken("");
+      setIsPasswordOtpSent(false);
+      setActiveEditSection(null);
+      setMessage({
+        type: "success",
+        text: "Нууц үг амжилттай шинэчлэгдлээ.",
+      });
+    } catch (error) {
+      setMessage({
+        type: "error",
+        text:
+          error instanceof ApiError
+            ? error.message
+            : "Нууц үг шинэчлэхэд алдаа гарлаа.",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#F8FAFC]">
-        <div className="animate-pulse text-xs font-medium text-slate-400">
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <div className="text-xs font-semibold text-slate-400">
           Уншиж байна...
         </div>
       </div>
@@ -320,34 +317,37 @@ export default function ProfilePage() {
   ].includes(user?.role);
 
   return (
-    <div className="bg-[#F8FAFC] p-3 text-slate-900 antialiased sm:p-5 lg:p-8">
+    <div className="min-h-screen bg-slate-50/60 p-4 font-sans text-slate-900 antialiased sm:p-6 lg:p-8">
       <div className="mx-auto max-w-7xl">
-        {/* ERROR */}
+        {/* Алдааны мэдээлэл */}
         {errorMessage && (
-          <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3.5 text-xs text-red-700">
             {errorMessage}
           </div>
         )}
 
-        {/* SUCCESS / ERROR MESSAGE */}
+        {/* Мэдээллийн поп-ап / Анхааруулга */}
         {message.text && (
           <div
-            className={`mb-4 rounded-xl border p-3 text-xs ${
+            className={`mb-4 flex items-center justify-between rounded-lg border p-3.5 text-xs transition-all ${
               message.type === "success"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "border-rose-200 bg-rose-50 text-rose-700"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "border-red-200 bg-red-50 text-red-800"
             }`}
           >
-            {message.text}
+            <span>{message.text}</span>
+            <button
+              onClick={() => setMessage({ type: "", text: "" })}
+              className="text-slate-400 hover:text-slate-600"
+            >
+              <X size={14} />
+            </button>
           </div>
         )}
 
-        {/* MAIN LAYOUT */}
-        <div className="grid min-w-0 gap-4 lg:grid-cols-12 lg:gap-6">
-          {/* =========================================
-              SIDEBAR
-              Desktop дээр байрандаа тогтмол байна.
-             ========================================= */}
+        {/* Үндсэн бүтэц */}
+        <div className="grid min-w-0 gap-6 lg:grid-cols-12">
+          {/* Сөргө цэс (Sidebar) */}
           <div
             className={`min-w-0 ${
               hasDashboard ? "lg:col-span-4" : "lg:col-span-3"
@@ -363,231 +363,315 @@ export default function ProfilePage() {
             />
           </div>
 
-          {/* =========================================
-              RIGHT CONTENT
-              Sidebar дээр дарсан зүйлээс хамаарч
-              ЗӨВХӨН энэ хэсэг өөрчлөгдөнө.
-             ========================================= */}
+          {/* Баруун талын агуулга */}
           <main
             className={`min-w-0 ${
               hasDashboard ? "lg:col-span-8" : "lg:col-span-9"
             }`}
           >
-            {/* =====================================
-                PROFILE
-               ===================================== */}
+            {/* PROFILE TAB */}
             {activeTab === "profile" && (
-              <div className="space-y-4">
-                {/* Profile intro */}
-                <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                  <div className="flex items-start justify-between gap-4 p-5 sm:p-6">
-                    <div>
-                      <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-900">
-                        Хувийн мэдээлэл
-                      </h2>
-                    </div>
-
-                    <button
-                      type="button"
-                      aria-label="Хувийн мэдээлэл засах"
-                      onClick={() => setIsEditing((current) => !current)}
-                      className="grid size-9 shrink-0 place-items-center rounded-lg border border-slate-200 text-slate-500 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
-                    >
-                      <Pencil size={16} />
-                    </button>
+              <div className="space-y-6">
+                {/* 1. ХУВИЙН МЭДЭЭЛЭЛ */}
+                <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
+                  <div className="border-b border-slate-100 px-6 py-4">
+                    <h2 className="text-sm font-bold text-slate-900">
+                      Хувийн мэдээлэл
+                    </h2>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      Системд бүртгэгдсэн таны үндсэн мэдээлэл
+                    </p>
                   </div>
 
-                  <div className="grid border-t border-slate-100 sm:grid-cols-2">
-                    {[
-                      {
-                        label: "Овог нэр",
-                        field: "fullName",
-                        value:
-                          `${user?.lastName || ""} ${user?.firstName || ""}`.trim() ||
-                          "-",
-                        icon: UserRound,
-                      },
-                      {
-                        label: "И-мэйл",
-                        field: "email",
-                        value: user?.email || "-",
-                        icon: Mail,
-                        type: "email",
-                      },
-                      {
-                        label: "Утасны дугаар",
-                        field: "phoneNumber",
-                        value: user?.phoneNumber || "-",
-                        icon: Phone,
-                      },
-
-                      {
-                        label: "Шинэ нууц үг",
-                        field: "newPassword",
-                        value: "••••••••",
-                        icon: KeyRound,
-                        type: "password",
-                        placeholder: "Шинэ нууц үг оруулах",
-                      },
-                      {
-                        label: "Нууц үг баталгаажуулах",
-                        field: "confirmPassword",
-                        value: "••••••••",
-                        icon: KeyRound,
-                        type: "password",
-                        placeholder: "Нууц үгээ давтан оруулах",
-                      },
-                    ].map(
-                      (
-                        { label, field, value, icon: Icon, type, placeholder },
-                        index,
-                      ) => (
-                        <div
-                          key={label}
-                          className={`flex items-center gap-3 px-5 py-4 sm:px-6 ${
-                            index > 0 ? "border-t border-slate-100" : ""
-                          } ${index === 1 ? "sm:border-t" : ""} ${
-                            index === 2 ? "sm:col-span-2 sm:border-t" : ""
-                          }`}
-                        >
-                          <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-slate-50 text-slate-500">
-                            <Icon size={15} strokeWidth={1.8} />
+                  <div className="divide-y divide-slate-100">
+                    {/* Овог нэр */}
+                    <div className="p-5 transition hover:bg-slate-50/50">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3.5">
+                          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600">
+                            <UserRound size={16} />
                           </div>
-                          <div className="min-w-0">
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
-                              {label}
+                          <div>
+                            <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">
+                              Овог нэр
                             </p>
-                            {isEditing &&
-                            field !== "fullName" &&
-                            field !== "role" ? (
+                            <p className="text-sm font-medium text-slate-900">
+                              {user?.lastName} {user?.firstName}
+                            </p>
+                          </div>
+                        </div>
+                        {activeEditSection !== "info" && (
+                          <button
+                            type="button"
+                            onClick={() => setActiveEditSection("info")}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+                          >
+                            <Pencil size={13} />
+                            Засах
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Засах горим */}
+                      {activeEditSection === "info" && (
+                        <div className="mt-4 space-y-3.5 rounded-lg border border-slate-200 bg-slate-50/50 p-4">
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <div>
+                              <label className="text-xs font-medium text-slate-600">
+                                Овог
+                              </label>
                               <input
-                                type={type || "text"}
-                                value={form[field] || ""}
-                                placeholder={placeholder || "Оруулах"}
-                                onChange={(event) =>
-                                  setForm((current) => ({
-                                    ...current,
-                                    [field]: event.target.value,
+                                type="text"
+                                value={form.lastName}
+                                onChange={(e) =>
+                                  setForm((prev) => ({
+                                    ...prev,
+                                    lastName: e.target.value,
                                   }))
                                 }
-                                className="mt-1 w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-sm font-medium text-slate-800 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+                                className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-normal text-slate-900 outline-none focus:border-slate-800 focus:ring-1 focus:ring-slate-800"
                               />
-                            ) : (
-                              <p className="mt-1 truncate text-sm font-semibold text-slate-800">
-                                {value}
-                              </p>
-                            )}
+                            </div>
+                            <div>
+                              <label className="text-xs font-medium text-slate-600">
+                                Нэр
+                              </label>
+                              <input
+                                type="text"
+                                value={form.firstName}
+                                onChange={(e) =>
+                                  setForm((prev) => ({
+                                    ...prev,
+                                    firstName: e.target.value,
+                                  }))
+                                }
+                                className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-normal text-slate-900 outline-none focus:border-slate-800 focus:ring-1 focus:ring-slate-800"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid sm:grid-cols-2">
+                            <div>
+                              <label className="text-xs font-medium text-slate-600">
+                                Утасны дугаар
+                              </label>
+                              <input
+                                type="text"
+                                value={form.phoneNumber}
+                                onChange={(e) =>
+                                  setForm((prev) => ({
+                                    ...prev,
+                                    phoneNumber: e.target.value,
+                                  }))
+                                }
+                                className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-normal text-slate-900 outline-none focus:border-slate-800 focus:ring-1 focus:ring-slate-800"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex justify-end gap-2 pt-1">
+                            <button
+                              type="button"
+                              onClick={handleCancelEdit}
+                              className="rounded-md border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
+                            >
+                              Цуцлах
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleSaveInfo}
+                              disabled={saving}
+                              className="rounded-md bg-slate-900 px-4 py-1.5 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+                            >
+                              {saving ? "Хадгалж байна..." : "Хадгалах"}
+                            </button>
                           </div>
                         </div>
-                      ),
-                    )}
-                  </div>
-
-                  {isEditing &&
-                    form.newPassword &&
-                    isPasswordOtpSent &&
-                    !passwordResetToken && (
-                      <div className="flex flex-col gap-3 border-t border-amber-100 bg-amber-50/50 px-5 py-4 sm:flex-row sm:items-end sm:px-6">
-                        <label className="min-w-0 flex-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-700">
-                          Бүртгэлтэй утасны дугаарлуу баталгаажуулах код
-                          явууллаа.
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            maxLength={4}
-                            value={passwordOtp}
-                            onChange={(event) =>
-                              setPasswordOtp(
-                                event.target.value
-                                  .replace(/\D/g, "")
-                                  .slice(0, 4),
-                              )
-                            }
-                            placeholder="0000"
-                            className="mt-1 w-full rounded-md border border-amber-200 bg-white px-3 py-2 text-sm font-semibold tracking-[0.3em] text-slate-800 outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10"
-                          />
-                        </label>
-                        <button
-                          type="button"
-                          onClick={handleVerifyPasswordOtp}
-                          disabled={saving || passwordOtp.length !== 4}
-                          className="rounded-lg bg-amber-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {saving ? "Шалгаж байна..." : "Код баталгаажуулах"}
-                        </button>
-                      </div>
-                    )}
-
-                  {isEditing && (
-                    <div className="flex justify-end gap-2 border-t border-slate-100 px-5 py-4 sm:px-6">
-                      <button
-                        type="button"
-                        onClick={handleCancelEdit}
-                        className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
-                      >
-                        Болих
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleSave}
-                        disabled={saving}
-                        className="rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-700 disabled:opacity-60"
-                      >
-                        {saving ? "Хадгалж байна..." : "Хадгалах"}
-                      </button>
+                      )}
                     </div>
-                  )}
+
+                    {/* Утасны дугаар */}
+                    <div className="flex items-center justify-between gap-4 p-5 transition hover:bg-slate-50/50">
+                      <div className="flex items-center gap-3.5">
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600">
+                          <Phone size={16} />
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">
+                            Утасны дугаар
+                          </p>
+                          <p className="text-sm font-medium text-slate-900">
+                            {user?.phoneNumber || "Бүртгэгдээгүй"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </section>
 
-                {/* Orders */}
-                {/* <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-                  <div>
-                    <h3 className="font-bold text-slate-900">
-                      Миний захиалсан бараа
-                    </h3>
+                {/* 2. АЮУЛГҮЙ БАЙДАЛ & НУУЦ ҮГ */}
+                <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
+                  <div className="border-b border-slate-100 px-6 py-4">
+                    <h2 className="text-sm font-bold text-slate-900">
+                      Аюулгүй байдал
+                    </h2>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      Нэвтрэх нууц үг солих ба баталгаажуулалт
+                    </p>
                   </div>
 
-                  {merchOrders.length === 0 ? (
-                    <div className="mt-5 rounded-xl border border-dashed border-slate-200 p-8 text-center">
-                      <p className="text-sm font-medium text-slate-500">
-                        Одоогоор захиалга байхгүй байна.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="mt-5 space-y-3">
-                      {merchOrders.map((order, index) => (
-                        <div
-                          key={order?.id || order?._id || index}
-                          className="rounded-xl border border-slate-100 p-4"
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="text-sm font-semibold text-slate-900">
-                              Захиалга #{index + 1}
-                            </span>
+                  <div className="p-5">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3.5">
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600">
+                          <KeyRound size={16} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-slate-900">
+                            Нууц үг
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            Бүртгэлтэй нууц үгээ шинэчлэх
+                          </p>
+                        </div>
+                      </div>
 
-                            <span className="text-xs text-slate-500">
-                              {order?.status || "Хүлээгдэж буй"}
-                            </span>
+                      {activeEditSection !== "password" && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveEditSection("password");
+                            setMessage({ type: "", text: "" });
+                          }}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+                        >
+                          Солих
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Нууц үг солих хэсэг */}
+                    {activeEditSection === "password" && (
+                      <div className="mt-4 space-y-4 rounded-lg border border-slate-200 bg-slate-50/50 p-4 sm:p-5">
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <div>
+                            <label className="text-xs font-medium text-slate-700">
+                              Шинэ нууц үг
+                            </label>
+                            <input
+                              type="password"
+                              placeholder="••••••••"
+                              value={form.newPassword}
+                              onChange={(e) =>
+                                setForm((prev) => ({
+                                  ...prev,
+                                  newPassword: e.target.value,
+                                }))
+                              }
+                              className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm outline-none focus:border-slate-800 focus:ring-1 focus:ring-slate-800"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-slate-700">
+                              Шинэ нууц үг давтах
+                            </label>
+                            <input
+                              type="password"
+                              placeholder="••••••••"
+                              value={form.confirmPassword}
+                              onChange={(e) =>
+                                setForm((prev) => ({
+                                  ...prev,
+                                  confirmPassword: e.target.value,
+                                }))
+                              }
+                              className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm outline-none focus:border-slate-800 focus:ring-1 focus:ring-slate-800"
+                            />
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </section> */}
+
+                        {/* OTP Баталгаажуулах */}
+                        {isPasswordOtpSent && !passwordResetToken && (
+                          <div className="rounded-md border border-slate-200 bg-white p-3.5 shadow-sm">
+                            <p className="text-xs font-medium text-slate-700">
+                              {user?.phoneNumber} дугаарт очсон 4 оронтой кодыг
+                              оруулна уу:
+                            </p>
+                            <div className="mt-2.5 flex items-center gap-2">
+                              <input
+                                type="text"
+                                maxLength={4}
+                                value={passwordOtp}
+                                onChange={(e) =>
+                                  setPasswordOtp(
+                                    e.target.value
+                                      .replace(/\D/g, "")
+                                      .slice(0, 4),
+                                  )
+                                }
+                                placeholder="0000"
+                                className="w-28 rounded-md border border-slate-300 bg-slate-50 px-3 py-1 text-center text-sm font-bold tracking-widest text-slate-900 outline-none focus:border-slate-800"
+                              />
+                              <button
+                                type="button"
+                                onClick={handleVerifyPasswordOtp}
+                                disabled={saving || passwordOtp.length !== 4}
+                                className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+                              >
+                                {saving ? "Шалгаж байна..." : "Баталгаажуулах"}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex justify-end gap-2 pt-2">
+                          <button
+                            type="button"
+                            onClick={handleCancelEdit}
+                            className="rounded-md border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
+                          >
+                            Цуцлах
+                          </button>
+
+                          {!isPasswordOtpSent && (
+                            <button
+                              type="button"
+                              onClick={handleRequestPasswordReset}
+                              disabled={saving}
+                              className="rounded-md bg-slate-900 px-4 py-1.5 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+                            >
+                              {saving
+                                ? "Код илгээж байна..."
+                                : "Код авч үргэлжлүүлэх"}
+                            </button>
+                          )}
+
+                          {passwordResetToken && (
+                            <button
+                              type="button"
+                              onClick={handleSavePassword}
+                              disabled={saving}
+                              className="rounded-md bg-slate-900 px-4 py-1.5 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+                            >
+                              {saving
+                                ? "Шинэчилж байна..."
+                                : "Шинэ нууц үг хадгалах"}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </section>
               </div>
             )}
 
-            {/* =====================================
-                DASHBOARD
-               ===================================== */}
+            {/* DASHBOARD TAB */}
             {activeTab === "dashboard" && (
               <div className="space-y-4">
                 {user?.role === "DRIVER" && <DriverDashboardContent embedded />}
-
                 {user?.role === "ADMIN_PANEL" && <AdminPanel />}
-
                 {user?.role === "HR" && <HrDashboardPage embedded />}
-
                 {user?.role !== "DRIVER" &&
                   hasDashboard &&
                   user?.role !== "HR" &&
@@ -597,31 +681,26 @@ export default function ProfilePage() {
               </div>
             )}
 
+            {/* SALARY TAB */}
             {activeTab === "salary" && (
               <section className="space-y-5">
-                <div className="border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-                  <div className="flex items-start gap-3">
-                    <div>
-                      <h2 className="mt-1 text-xl font-bold text-slate-900">
-                        Цалин тооцоолох
-                      </h2>
-
-                      <p className="mt-1 text-sm text-slate-500">
-                        Ажилласан өдөр, ээлж болон бусад мэдээллээ оруулж
-                        цалингаа тооцоолно уу.
-                      </p>
-                    </div>
-                  </div>
+                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <h2 className="text-sm font-bold text-slate-900">
+                    Цалин тооцоолох
+                  </h2>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    Ажилласан өдөр болон бусад мэдээллээр цалингаа тооцоолно уу.
+                  </p>
                 </div>
-
                 <div>
                   <SalaryCalc />
                 </div>
               </section>
             )}
 
+            {/* FEEDBACK TAB */}
             {activeTab === "feedback" && (
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <FeedbackPage />
               </div>
             )}

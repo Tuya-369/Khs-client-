@@ -21,8 +21,8 @@ import { api } from "@/lib/api";
 import { clearSession, getAccessToken } from "@/lib/session";
 
 const roleLabels = {
-  ADMIN: "Админ",
-  ADMIN_PANEL: "Admin Panel",
+  ADMIN: "Худалдан авалтын менежер",
+  ADMIN_PANEL: "Админ",
   TOKEN_MANAGER: "Токен менежер",
   DRIVER: "Механикч",
   HR: "Хүний нөөц",
@@ -115,7 +115,7 @@ export default function ProfileSidebar({
     <>
       <div className="flex items-center justify-between rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-sm lg:hidden mb-4">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="flex size-10 items-center justify-center rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white font-bold text-sm shadow-md shadow-indigo-100 shrink-0">
+          <div className="flex size-10 items-center justify-center rounded-full `bg-gradient-to-tr` from-indigo-600 to-violet-500 text-white font-bold text-sm shadow-md shadow-indigo-100 shrink-0">
             {displayName.charAt(0)}
           </div>
           <div className="min-w-0">
@@ -141,7 +141,7 @@ export default function ProfileSidebar({
             type="button"
             aria-label="Гарах"
             onClick={handleLogout}
-            className="flex size-9 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-600 active:bg-rose-100 transition"
+            className="flex size-9 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-500 active:bg-slate-100 transition"
           >
             <LogOut size={18} />
           </button>
@@ -310,7 +310,7 @@ export default function ProfileSidebar({
         <div className="border-b border-slate-100 p-4 sm:p-5">
           <div className="flex items-start gap-3">
             <div className="min-w-0 flex-1">
-              <h1 className="truncate text-sm font-bold text-slate-900 sm:text-base">
+              <h1 className="truncate text-sm font-bold text-slate-900">
                 {displayName}
               </h1>
 

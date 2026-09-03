@@ -31,7 +31,6 @@ function formatMNT(value) {
 export default function SalaryCalc() {
   const [hourlyRate, setHourlyRate] = useState(19000);
   const [dayShiftDays, setDayShiftDays] = useState(20);
-
   const [nightShiftDays, setNightShiftDays] = useState(0);
   const [otDayDays, setOtDayDays] = useState(0);
   const [otNightDays, setOtNightDays] = useState(0);
@@ -236,7 +235,7 @@ export default function SalaryCalc() {
         </div>
 
         <div className="flex justify-between items-center text-slate-700">
-          <span>Нийт бодогдсон:</span>
+          <span>Нийт бодогдох цалин:</span>
           <span className="font-bold text-slate-900 tabular-nums">
             {formatMNT(result.gross)}
           </span>
@@ -245,9 +244,9 @@ export default function SalaryCalc() {
         <div className="border-t border-dashed border-slate-200 my-2" />
 
         {/* Суутгалууд */}
-        <div className="space-y-1 text-xs">
+        <div className="space-y-1.5 text-xs">
           <div className="flex justify-between items-center text-slate-600">
-            <span>НДШ:</span>
+            <span>Нийгмийн даатгалын шимтгэл:</span>
             <span className="font-semibold text-rose-600 tabular-nums">
               - {formatMNT(result.ndsh)}
             </span>
@@ -261,7 +260,14 @@ export default function SalaryCalc() {
           </div>
 
           <div className="flex justify-between items-center text-slate-600">
-            <span>Фонд:</span>
+            <span>ХХОАТ хөнгөлөлт:</span>
+            <span className="font-semibold text-slate-900 tabular-nums">
+              + {formatMNT(result.relief)}
+            </span>
+          </div>
+
+          <div className="flex justify-between items-center text-slate-600">
+            <span>Хамтын суутгал (фонд):</span>
             <span className="font-semibold text-rose-600 tabular-nums">
               - {formatMNT(fond)}
             </span>

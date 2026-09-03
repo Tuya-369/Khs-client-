@@ -5,9 +5,9 @@ import { Clock, Wallet } from "lucide-react";
 
 const DAY_COEFFICIENTS = {
   dayShift: 12,
-  nightShift: 13,
+  nightShift: 13.6,
   otDay: 18,
-  otNight: 19,
+  otNight: 19.6,
   holiday: 16,
 };
 
@@ -29,7 +29,7 @@ function formatMNT(value) {
 }
 
 export default function SalaryCalc() {
-  const [hourlyRate, setHourlyRate] = useState(19000);
+  const [hourlyRate, setHourlyRate] = useState(0);
   const [dayShiftDays, setDayShiftDays] = useState(20);
   const [nightShiftDays, setNightShiftDays] = useState(0);
   const [otDayDays, setOtDayDays] = useState(0);
@@ -243,7 +243,7 @@ export default function SalaryCalc() {
 
         <div className="border-t border-dashed border-slate-200 my-2" />
 
-        {/* Суутгалууд */}
+        {/* suutgal */}
         <div className="space-y-1.5 text-xs">
           <div className="flex justify-between items-center text-slate-600">
             <span>Нийгмийн даатгалын шимтгэл:</span>
@@ -274,7 +274,7 @@ export default function SalaryCalc() {
           </div>
         </div>
 
-        {/* Гарт олгох цалин */}
+        {/* gart olgoh tsalin */}
         <div className="pt-2 border-t border-slate-200 mt-2">
           <div className="flex justify-between items-center text-xs">
             <div className="flex items-center gap-1.5 font-bold text-slate-900">

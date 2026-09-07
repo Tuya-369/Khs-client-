@@ -2,6 +2,7 @@ import { Geist_Mono, Noto_Sans } from "next/font/google";
 import "./globals.css";
 import AppShell from "@/components/Layout/AppShell";
 import { CartProvider } from "@/context/CartContext";
+import { ProfileProvider } from "@/context/ProfileContext";
 
 const notoSans = Noto_Sans({
   variable: "--font-noto-sans",
@@ -22,7 +23,9 @@ export default function RootLayout({ children }) {
     >
       <body className="min-h-full flex flex-col">
         <CartProvider>
-          <AppShell>{children}</AppShell>
+          <ProfileProvider>
+            <AppShell>{children}</AppShell>
+          </ProfileProvider>
         </CartProvider>
       </body>
     </html>

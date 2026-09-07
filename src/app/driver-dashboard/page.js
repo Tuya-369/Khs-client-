@@ -7,7 +7,7 @@ import { ApiError, api } from "@/lib/api";
 import { clearSession, getAccessToken } from "@/lib/session";
 import DashboardProfileCard from "@/components/common/DashboardProfileCard";
 
-const MAX_DAMAGE_IMAGES = 5;
+const MAX_DAMAGE_IMAGES = 2;
 const MAX_DAMAGE_IMAGE_SIZE = 20 * 1024 * 1024;
 const ALLOWED_DAMAGE_IMAGE_TYPES = new Set([
   "image/jpeg",
@@ -171,7 +171,9 @@ export function DriverDashboardContent({ embedded = false }) {
     const validationErrors = [];
 
     if (availableSlots <= 0) {
-      setErrorMessage("Нэг хүсэлтэд хамгийн ихдээ 5 зураг оруулна.");
+      setErrorMessage(
+        `Нэг хүсэлтэд хамгийн ихдээ ${MAX_DAMAGE_IMAGES} зураг оруулна.`,
+      );
       event.target.value = "";
       return;
     }

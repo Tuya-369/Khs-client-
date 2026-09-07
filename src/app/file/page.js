@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, Download } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, Eye } from "lucide-react";
 
 const CATEGORIES = ["Бүгд", "Тайлан", "Журам", "Хуудас"];
 
@@ -27,6 +28,7 @@ const DOCUMENTS = [
 ];
 
 export default function FilePage() {
+  const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState("Бүгд");
 
   const filteredDocs =
@@ -37,6 +39,15 @@ export default function FilePage() {
   return (
     <div className="w-full min-flex-1  py-20 px-6 flex flex-col items-center justify-start">
       <div className="max-w-5xl w-full flex flex-col gap-6">
+        <button
+          type="button"
+          onClick={() => router.push("/profile")}
+          className="inline-flex w-fit items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 shadow-sm transition hover:bg-slate-50"
+        >
+          <ArrowLeft size={14} />
+          Буцах
+        </button>
+
         <div className="flex flex-wrap gap-3 justify-start">
           {CATEGORIES.map((cat) => (
             <button

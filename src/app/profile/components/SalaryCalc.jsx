@@ -8,7 +8,8 @@ const DAY_COEFFICIENTS = {
   nightShift: 13.6,
   otDay: 18,
   otNight: 19.6,
-  holiday: 16,
+  holidayBase: 12,
+  holidayExtra: 4,
 };
 
 const NDSH_CAP_BASE = 7920000;
@@ -28,6 +29,11 @@ function formatMNT(value) {
   return new Intl.NumberFormat("mn-MN").format(Math.round(value)) + " ₮";
 }
 
+// Бутархайн оронгийн алдаа гарахаас сэргийлж 2 оронгоор нарийн дугуйлах функц
+function round2(num) {
+  return Math.round((num + Number.EPSILON) * 100) / 100;
+}
+
 export default function SalaryCalc() {
   const [hourlyRate, setHourlyRate] = useState(0);
   const [dayShiftDays, setDayShiftDays] = useState(20);
@@ -39,36 +45,57 @@ export default function SalaryCalc() {
   const [fond, setFond] = useState(20000);
 
   const result = useMemo(() => {
-    const dayHours = Math.max(0, dayShiftDays) * DAY_COEFFICIENTS.dayShift;
-    const nightHours =
-      Math.max(0, nightShiftDays) * DAY_COEFFICIENTS.nightShift;
-    const otDayHours = Math.max(0, otDayDays) * DAY_COEFFICIENTS.otDay;
-    const otNightHours = Math.max(0, otNightDays) * DAY_COEFFICIENTS.otNight;
-    const holidayHours = Math.max(0, holidayDays) * DAY_COEFFICIENTS.holiday;
+    const safeDay = Math.max(0, Number(dayShiftDays) || 0);
+    const safeNight = Math.max(0, Number(nightShiftDays) || 0);
+    const safeOtDay = Math.max(0, Number(otDayDays) || 0);
+    const safeOtNight = Math.max(0, Number(otNightDays) || 0);
+    const safeHoliday = Math.max(0, Number(holidayDays) || 0);
     const safeTravelHours = Math.max(0, Number(travelHours) || 0);
 
-    const totalHours =
+    const totalDays =
+      safeDay + safeNight + safeOtDay + safeOtNight + safeHoliday;
+
+    // Цагийн тооцооллууд
+    const dayHours = round2(safeDay * DAY_COEFFICIENTS.dayShift);
+    const nightHours = round2(safeNight * DAY_COEFFICIENTS.nightShift);
+    const otDayHours = round2(safeOtDay * DAY_COEFFICIENTS.otDay);
+    const otNightHours = round2(safeOtNight * DAY_COEFFICIENTS.otNight);
+
+    const holidayBaseHours = round2(safeHoliday * DAY_COEFFICIENTS.holidayBase);
+    const holidayExtraHours = round2(
+      safeHoliday * DAY_COEFFICIENTS.holidayExtra,
+    );
+    const holidayHours = round2(holidayBaseHours + holidayExtraHours);
+
+    // Нийт ажилласан цаг (Бутархайг нарийвчлан дугуйлна)
+    const rawTotalHours =
       dayHours +
       nightHours +
       otDayHours +
       otNightHours +
       holidayHours +
       safeTravelHours;
+    const totalHours = round2(rawTotalHours);
 
-    const gross = totalHours * Math.max(0, Number(hourlyRate) || 0);
-    const ndsh = gross > NDSH_CAP_BASE ? NDSH_CAP_BASE * 0.115 : gross * 0.115;
-    const taxBase = Math.max(0, gross - ndsh);
-    const rawHhoat = taxBase * 0.1;
+    // Санхүүгийн тооцоолол
+    const gross = round2(totalHours * Math.max(0, Number(hourlyRate) || 0));
+    const ndshBase = gross > NDSH_CAP_BASE ? NDSH_CAP_BASE : gross;
+    const ndsh = round2(ndshBase * 0.115);
+    const taxBase = Math.max(0, round2(gross - ndsh));
+    const rawHhoat = round2(taxBase * 0.1);
     const relief = getTaxRelief(gross);
-    const finalHhoat = Math.max(0, rawHhoat - relief);
+    const finalHhoat = Math.max(0, round2(rawHhoat - relief));
     const safeFond = Math.max(0, Number(fond) || 0);
-    const net = Math.max(0, gross - ndsh - finalHhoat - safeFond);
+    const net = Math.max(0, round2(gross - ndsh - finalHhoat - safeFond));
 
     return {
+      totalDays,
       dayHours,
       nightHours,
       otDayHours,
       otNightHours,
+      holidayBaseHours,
+      holidayExtraHours,
       holidayHours,
       totalHours,
       gross,
@@ -92,6 +119,7 @@ export default function SalaryCalc() {
 
   return (
     <div className="w-full space-y-4">
+      {/* Оролтын хэсэг */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
           <label className="block text-xs font-semibold text-slate-900">
@@ -113,11 +141,12 @@ export default function SalaryCalc() {
             type="number"
             value={fond || ""}
             onChange={(e) => setFond(Number(e.target.value))}
-            className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-bold text-slate-900 transition focus:border-[#4677b9] focus:outline-none focus:ring-1 focus:ring-[#4677b9]"
+            className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-bold text-[#4677b9] transition focus:border-[#4677b9] focus:outline-none focus:ring-1 focus:ring-[#4677b9]"
           />
         </div>
       </div>
 
+      {/* Ээлж, өдөр/цаг оруулах */}
       <div className="space-y-2">
         <div className="flex items-center gap-1.5 px-0.5 text-xs font-bold text-slate-900">
           <Clock className="h-4 w-4 text-[#4677b9]" />
@@ -226,7 +255,22 @@ export default function SalaryCalc() {
         </div>
       </div>
 
+      {/* Үр дүн харуулах */}
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2 text-xs">
+        <div className="flex justify-between items-center text-slate-700">
+          <span>Нийт ажилласан өдөр:</span>
+          <span className="font-bold text-slate-900 tabular-nums">
+            {result.totalDays} өдөр
+          </span>
+        </div>
+
+        <div className="flex justify-between items-center text-slate-700">
+          <span>Нийтийн амралтаар ажилласан өдрийн нэмэлт цаг:</span>
+          <span className="font-bold text-slate-900 tabular-nums">
+            {result.holidayExtraHours} цаг
+          </span>
+        </div>
+
         <div className="flex justify-between items-center text-slate-700">
           <span>Нийт ажилласан цаг:</span>
           <span className="font-bold text-slate-900 tabular-nums">
@@ -234,7 +278,7 @@ export default function SalaryCalc() {
           </span>
         </div>
 
-        <div className="flex justify-between items-center text-slate-700">
+        <div className="flex justify-between items-center text-slate-700 pt-1">
           <span>Нийт бодогдох цалин:</span>
           <span className="font-bold text-slate-900 tabular-nums">
             {formatMNT(result.gross)}
@@ -243,7 +287,7 @@ export default function SalaryCalc() {
 
         <div className="border-t border-dashed border-slate-200 my-2" />
 
-        {/* suutgal */}
+        {/* Суутгалууд */}
         <div className="space-y-1.5 text-xs">
           <div className="flex justify-between items-center text-slate-600">
             <span>Нийгмийн даатгалын шимтгэл:</span>
@@ -274,7 +318,7 @@ export default function SalaryCalc() {
           </div>
         </div>
 
-        {/* gart olgoh tsalin */}
+        {/* Гарт олгох цалин */}
         <div className="pt-2 border-t border-slate-200 mt-2">
           <div className="flex justify-between items-center text-xs">
             <div className="flex items-center gap-1.5 font-bold text-slate-900">

@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ApiError, api } from "@/lib/api";
 import { clearSession, getAccessToken, saveSession } from "@/lib/session";
+import { useProfile } from "@/context/ProfileContext";
 import {
   Check,
+  ArrowLeft,
   ChevronRight,
   KeyRound,
   Lock,
@@ -32,11 +34,12 @@ export default function ProfilePage() {
   const [user, setUser] = useState(null);
   const [merchOrders, setMerchOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Засаж буй хэсэг: 'info' | 'password' | null
   const [activeEditSection, setActiveEditSection] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [profileImagePreview, setProfileImagePreview] = useState("");
 
   const [passwordOtp, setPasswordOtp] = useState("");
   const [passwordResetToken, setPasswordResetToken] = useState("");
@@ -48,6 +51,7 @@ export default function ProfilePage() {
     email: "",
     phoneNumber: "",
     additionalPhoneNumber: "",
+    profileImage: null,
     newPassword: "",
     confirmPassword: "",
   });
@@ -56,6 +60,7 @@ export default function ProfilePage() {
     type: "",
     text: "",
   });
+  const { updateProfileUser } = useProfile();
 
   const profileTabs = ["dashboard", "profile", "salary", "feedback"];
   const requestedTab = searchParams.get("tab");
@@ -81,6 +86,7 @@ export default function ProfilePage() {
         const currentUser = response?.data?.user || null;
 
         setUser(currentUser);
+        updateProfileUser(currentUser);
 
         try {
           const ordersResponse = await api.getMyMerchOrders(token);
@@ -98,6 +104,7 @@ export default function ProfilePage() {
             currentUser?.additionalPhoneNumber ||
             currentUser?.secondaryPhoneNumber ||
             "",
+          profileImage: null,
           newPassword: "",
           confirmPassword: "",
         });
@@ -114,7 +121,7 @@ export default function ProfilePage() {
     };
 
     initPage();
-  }, [router]);
+  }, [router, updateProfileUser]);
 
   const handleCancelEdit = () => {
     setForm({
@@ -124,14 +131,47 @@ export default function ProfilePage() {
       phoneNumber: user?.phoneNumber || "",
       additionalPhoneNumber:
         user?.additionalPhoneNumber || user?.secondaryPhoneNumber || "",
+      profileImage: null,
       newPassword: "",
       confirmPassword: "",
     });
     setActiveEditSection(null);
+    setProfileImagePreview("");
     setPasswordOtp("");
     setPasswordResetToken("");
     setIsPasswordOtpSent(false);
     setMessage({ type: "", text: "" });
+  };
+
+  const handleProfileImageChange = (event) => {
+    const file = event.target.files?.[0] || null;
+
+    if (!file) {
+      setForm((prev) => ({ ...prev, profileImage: null }));
+      setProfileImagePreview("");
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setMessage({ type: "error", text: "Зөвхөн зураг сонгоно уу." });
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage({
+        type: "error",
+        text: "Зургийн хэмжээ 5 MB-аас ихгүй байна.",
+      });
+      event.target.value = "";
+      return;
+    }
+
+    setForm((prev) => ({ ...prev, profileImage: file }));
+
+    const reader = new FileReader();
+    reader.onload = () => setProfileImagePreview(String(reader.result || ""));
+    reader.readAsDataURL(file);
   };
 
   const handleSaveInfo = async () => {
@@ -146,9 +186,8 @@ export default function ProfilePage() {
       const payload = {
         lastName: form.lastName?.trim() || "",
         firstName: form.firstName?.trim() || "",
-        email: form.email?.trim() || "",
         phoneNumber: form.phoneNumber?.trim() || "",
-        additionalPhoneNumber: form.additionalPhoneNumber?.trim() || "",
+        profileImage: form.profileImage,
       };
 
       const response = await api.updateProfile(token, payload);
@@ -161,7 +200,9 @@ export default function ProfilePage() {
 
       setUser(updatedUser);
       saveSession(token, updatedUser);
+      updateProfileUser(updatedUser);
       setActiveEditSection(null);
+      setProfileImagePreview("");
       setMessage({
         type: "success",
         text: "Хувийн мэдээлэл амжилттай шинэчлэгдлээ.",
@@ -319,14 +360,14 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-slate-50/60 p-4 font-sans text-slate-900 antialiased sm:p-6 lg:p-8">
       <div className="mx-auto max-w-7xl">
-        {/* Алдааны мэдээлэл */}
+        {/* error msg */}
         {errorMessage && (
           <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3.5 text-xs text-red-700">
             {errorMessage}
           </div>
         )}
 
-        {/* Мэдээллийн поп-ап / Анхааруулга */}
+        {/* info popup / alert */}
         {message.text && (
           <div
             className={`mb-4 flex items-center justify-between rounded-lg border p-3.5 text-xs transition-all ${
@@ -345,9 +386,9 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* Үндсэн бүтэц */}
+        {/* Main content */}
         <div className="grid min-w-0 gap-6 lg:grid-cols-12">
-          {/* Сөргө цэс (Sidebar) */}
+          {/* Sidebar */}
           <div
             className={`min-w-0 ${
               hasDashboard ? "lg:col-span-4" : "lg:col-span-3"
@@ -360,31 +401,40 @@ export default function ProfilePage() {
               setForm={setForm}
               activeTab={activeTab}
               setActiveTab={setActiveTab}
+              isMobileNavigationOpen={isMobileNavigationOpen}
+              setIsMobileNavigationOpen={setIsMobileNavigationOpen}
             />
           </div>
 
-          {/* Баруун талын агуулга */}
+          {/* Right content  */}
           <main
-            className={`min-w-0 ${
-              hasDashboard ? "lg:col-span-8" : "lg:col-span-9"
-            }`}
+            className={`${
+              isMobileNavigationOpen ? "hidden lg:block" : "block"
+            } min-w-0 ${hasDashboard ? "lg:col-span-8" : "lg:col-span-9"}`}
           >
-            {/* PROFILE TAB */}
+            <button
+              type="button"
+              onClick={() => setIsMobileNavigationOpen(true)}
+              className="mb-4 inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 shadow-sm lg:hidden"
+            >
+              <ArrowLeft size={14} />
+              Буцах
+            </button>
             {activeTab === "profile" && (
               <div className="space-y-6">
-                {/* 1. ХУВИЙН МЭДЭЭЛЭЛ */}
+                {/* huwiin medeele */}
                 <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
                   <div className="border-b border-slate-100 px-6 py-4">
                     <h2 className="text-sm font-bold text-slate-900">
-                      Хувийн мэдээлэл
+                      Миний мэдээлэл
                     </h2>
                     <p className="mt-0.5 text-xs text-slate-500">
-                      Системд бүртгэгдсэн таны үндсэн мэдээлэл
+                      Хувийн мэдээллээ шинэчлэх, нууц үгээ солих
                     </p>
                   </div>
 
                   <div className="divide-y divide-slate-100">
-                    {/* Овог нэр */}
+                    {/* FULL NAME */}
                     <div className="p-5 transition hover:bg-slate-50/50">
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-3.5">
@@ -412,7 +462,7 @@ export default function ProfilePage() {
                         )}
                       </div>
 
-                      {/* Засах горим */}
+                      {/* edit mode*/}
                       {activeEditSection === "info" && (
                         <div className="mt-4 space-y-3.5 rounded-lg border border-slate-200 bg-slate-50/50 p-4">
                           <div className="grid gap-3 sm:grid-cols-2">
@@ -469,6 +519,38 @@ export default function ProfilePage() {
                             </div>
                           </div>
 
+                          <div>
+                            <label
+                              htmlFor="profile-image-input"
+                              className="group mt-2 flex w-fit cursor-pointer flex-col items-center gap-2"
+                            >
+                              {profileImagePreview || user?.profileImage ? (
+                                <img
+                                  src={profileImagePreview || user.profileImage}
+                                  alt="Профайл зургийн урьдчилан харах"
+                                  className="size-24 rounded-full border-2 border-slate-200 object-cover transition group-hover:border-blue-500"
+                                />
+                              ) : (
+                                <span className="flex size-24 items-center justify-center rounded-full bg-blue-600 text-2xl font-bold text-white transition group-hover:bg-blue-700">
+                                  {(form.firstName || form.lastName || "Х")
+                                    .trim()
+                                    .charAt(0)
+                                    .toUpperCase()}
+                                </span>
+                              )}
+                              <span className="text-xs font-medium text-blue-600 group-hover:text-blue-700">
+                                Зураг солих
+                              </span>
+                            </label>
+                            <input
+                              id="profile-image-input"
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                              onChange={handleProfileImageChange}
+                              className="sr-only"
+                            />
+                          </div>
+
                           <div className="flex justify-end gap-2 pt-1">
                             <button
                               type="button"
@@ -490,7 +572,7 @@ export default function ProfilePage() {
                       )}
                     </div>
 
-                    {/* Утасны дугаар */}
+                    {/* Number*/}
                     <div className="flex items-center justify-between gap-4 p-5 transition hover:bg-slate-50/50">
                       <div className="flex items-center gap-3.5">
                         <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600">
@@ -509,7 +591,7 @@ export default function ProfilePage() {
                   </div>
                 </section>
 
-                {/* 2. АЮУЛГҮЙ БАЙДАЛ & НУУЦ ҮГ */}
+                {/* 2. security */}
                 <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
                   <div className="border-b border-slate-100 px-6 py-4">
                     <h2 className="text-sm font-bold text-slate-900">
@@ -550,7 +632,6 @@ export default function ProfilePage() {
                       )}
                     </div>
 
-                    {/* Нууц үг солих хэсэг */}
                     {activeEditSection === "password" && (
                       <div className="mt-4 space-y-4 rounded-lg border border-slate-200 bg-slate-50/50 p-4 sm:p-5">
                         <div className="grid gap-3 sm:grid-cols-2">
@@ -590,7 +671,7 @@ export default function ProfilePage() {
                           </div>
                         </div>
 
-                        {/* OTP Баталгаажуулах */}
+                        {/* OTP Verification */}
                         {isPasswordOtpSent && !passwordResetToken && (
                           <div className="rounded-md border border-slate-200 bg-white p-3.5 shadow-sm">
                             <p className="text-xs font-medium text-slate-700">

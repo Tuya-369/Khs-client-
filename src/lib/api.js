@@ -161,63 +161,21 @@ export const api = {
   me: (token) => apiRequest("/api/auth/me", { token }),
   logout: (token) => apiRequest("/api/auth/logout", { method: "POST", token }),
   updateProfile: async (token, body) => {
-    const endpointAttempts = [
-      { path: "/api/auth/me", method: "PATCH" },
-      { path: "/api/users/me", method: "PATCH" },
-      { path: "/api/users/profile", method: "PATCH" },
-      { path: "/api/auth/profile", method: "PATCH" },
-      { path: "/api/auth/me", method: "PUT" },
-      { path: "/api/users/me", method: "PUT" },
-      { path: "/api/auth/profile", method: "PUT" },
-    ];
-
-    const payloadAttempts = [
-      body,
-      {
-        ...body,
-        avatarUrl: body?.profileImage || body?.avatarUrl || "",
-      },
-      {
-        user: {
-          ...body,
-          avatarUrl: body?.profileImage || body?.avatarUrl || "",
-        },
-      },
-    ];
-
-    let lastError = null;
-
-    for (const attempt of endpointAttempts) {
-      for (const requestBody of payloadAttempts) {
-        try {
-          return await apiRequest(attempt.path, {
-            method: attempt.method,
-            token,
-            body: requestBody,
-          });
-        } catch (error) {
-          if (
-            error instanceof ApiError &&
-            (error.status === 400 ||
-              error.status === 404 ||
-              error.status === 405 ||
-              error.status === 422)
-          ) {
-            lastError = error;
-            continue;
-          }
-
-          throw error;
-        }
+    const formData = new FormData();
+    Object.entries(body || {}).forEach(([key, value]) => {
+      if (key === "profileImage" && value instanceof File) {
+        formData.append(key, value);
+      } else if (value !== undefined && value !== null) {
+        formData.append(key, String(value));
       }
-    }
+    });
 
-    throw (
-      lastError ||
-      new ApiError(
-        "Профайл шинэчлэх endpoint олдсонгүй. Backend дээр /api/auth/me эсвэл /api/users/me update route-ээ шалгана уу.",
-      )
-    );
+    return apiRequest("/api/auth/me", {
+      method: "PATCH",
+      token,
+      body: formData,
+      isFormData: true,
+    });
   },
 
   getDriverOptions: (token) => apiRequest("/api/requests/options", { token }),
@@ -228,7 +186,7 @@ export const api = {
     formData.append("partIds", JSON.stringify(data.partIds));
     formData.append("description", data.description);
 
-    (data.images || []).slice(0, 5).forEach((file) => {
+    (data.images || []).slice(0, 2).forEach((file) => {
       formData.append("images", file);
     });
 

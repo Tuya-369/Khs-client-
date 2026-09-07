@@ -8,6 +8,7 @@ import ShopyBag from "./ShopyBag";
 import { useCart } from "@/context/CartContext";
 import { api } from "@/lib/api";
 import { clearSession, getAccessToken } from "@/lib/session";
+import { useProfile } from "@/context/ProfileContext";
 
 export default function Header() {
   const router = useRouter();
@@ -17,6 +18,15 @@ export default function Header() {
     Boolean(getAccessToken()),
   );
   const { totalItems } = useCart();
+  const { profileUser, updateProfileUser } = useProfile();
+  const profileInitial = (
+    profileUser?.firstName ||
+    profileUser?.lastName ||
+    "Х"
+  )
+    .trim()
+    .charAt(0)
+    .toUpperCase();
 
   const handleLogout = async () => {
     const token = getAccessToken();
@@ -26,6 +36,7 @@ export default function Header() {
     } catch {
     } finally {
       clearSession();
+      updateProfileUser(null);
       setIsAuthenticated(false);
       router.push("/auth");
     }
@@ -88,7 +99,21 @@ export default function Header() {
               className="p-1 hover:text-black transition-colors"
               aria-label="User menu"
             >
-              <User size={20} />
+              {isAuthenticated ? (
+                profileUser?.profileImage ? (
+                  <img
+                    src={profileUser.profileImage}
+                    alt="Профайл зураг"
+                    className="size-8 rounded-full border border-yellow-500 object-cover"
+                  />
+                ) : (
+                  <span className="flex size-8 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
+                    {profileInitial}
+                  </span>
+                )
+              ) : (
+                <User size={20} />
+              )}
             </button>
           </div>
 
@@ -120,7 +145,7 @@ export default function Header() {
               className="hover:text-black py-2 transition-colors"
               onClick={() => setIsMobileMenuOpen(false)}
             >
-              Home
+              Буцах
             </Link>
 
             <Link
@@ -128,21 +153,21 @@ export default function Header() {
               className="hover:text-black py-2 transition-colors"
               onClick={() => setIsMobileMenuOpen(false)}
             >
-              Merchandise
+              Бүтээгдэхүүн
             </Link>
             <Link
-              href="/#contact"
+              href="/GraduationCap"
               className="hover:text-black py-2 transition-colors"
               onClick={() => setIsMobileMenuOpen(false)}
             >
-              Contact
+              Сургалт
             </Link>
             <Link
               href="/file"
               className="hover:text-black py-2 transition-colors"
               onClick={() => setIsMobileMenuOpen(false)}
             >
-              File
+              Баримт бичиг
             </Link>
           </div>
         )}

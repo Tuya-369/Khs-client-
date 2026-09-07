@@ -8,7 +8,9 @@ import { useProfile } from "@/context/ProfileContext";
 import {
   Check,
   ArrowLeft,
+  BriefcaseBusiness,
   ChevronRight,
+  Hash,
   KeyRound,
   Lock,
   Mail,
@@ -421,31 +423,31 @@ export default function ProfilePage() {
               Буцах
             </button>
             {activeTab === "profile" && (
-              <div className="space-y-6">
+              <div className="space-y-0 mt-0.5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
                 {/* huwiin medeele */}
-                <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-                  <div className="border-b border-slate-100 px-6 py-4">
-                    <h2 className="text-sm font-bold text-slate-900">
+                <section className="overflow-hidden">
+                  <div className="border-b border-slate-100 pb-4">
+                    <h2 className="text-xl font-bold text-slate-900">
                       Миний мэдээлэл
                     </h2>
                     <p className="mt-0.5 text-xs text-slate-500">
-                      Хувийн мэдээллээ шинэчлэх, нууц үгээ солих
+                      Хувийн мэдээлэл, ажилын байр, холбоо барих мэдээлэл
                     </p>
                   </div>
 
                   <div className="divide-y divide-slate-100">
                     {/* FULL NAME */}
-                    <div className="p-5 transition hover:bg-slate-50/50">
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3.5">
+                    <div className="px-1 py-4 transition hover:bg-slate-50/50">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                        <div className="flex min-w-0 items-center gap-3.5">
                           <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600">
                             <UserRound size={16} />
                           </div>
-                          <div>
+                          <div className="min-w-0">
                             <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">
                               Овог нэр
                             </p>
-                            <p className="text-sm font-medium text-slate-900">
+                            <p className="`break-words text-sm font-medium text-slate-900">
                               {user?.lastName} {user?.firstName}
                             </p>
                           </div>
@@ -514,7 +516,7 @@ export default function ProfilePage() {
                                     phoneNumber: e.target.value,
                                   }))
                                 }
-                                className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-normal text-slate-900 outline-none focus:border-slate-800 focus:ring-1 focus:ring-slate-800"
+                                className="mt-1 w-full rounded-md  bg-white px-3 py-1.5 text-sm font-normal text-slate-900 outline-none focus:border-slate-800 focus:ring-1 focus:ring-slate-800"
                               />
                             </div>
                           </div>
@@ -573,17 +575,51 @@ export default function ProfilePage() {
                     </div>
 
                     {/* Number*/}
-                    <div className="flex items-center justify-between gap-4 p-5 transition hover:bg-slate-50/50">
-                      <div className="flex items-center gap-3.5">
+                    <div className="flex min-w-0 items-center gap-4 px-1 py-4 transition hover:bg-slate-50/50">
+                      <div className="flex min-w-0 items-center gap-3.5">
                         <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600">
                           <Phone size={16} />
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">
                             Утасны дугаар
                           </p>
-                          <p className="text-sm font-medium text-slate-900">
+                          <p className="`break-words` text-sm font-medium text-slate-900">
                             {user?.phoneNumber || "Бүртгэгдээгүй"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex min-w-0 items-center gap-4 px-1 py-4 transition hover:bg-slate-50/50">
+                      <div className="flex min-w-0 items-center gap-3.5">
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-600">
+                          <Hash size={16} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">
+                            SAP дугаар
+                          </p>
+                          <p className="`break-words` text-sm font-medium text-slate-900">
+                            {user?.sapId || "Бүртгэгдээгүй"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex min-w-0 items-center gap-4 px-1 py-4 transition hover:bg-slate-50/50">
+                      <div className="flex min-w-0 items-center gap-3.5">
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-slate-50 text-slate-600">
+                          <BriefcaseBusiness size={16} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">
+                            Төслийн нэр
+                          </p>
+                          <p className="`break-words` text-sm font-medium text-slate-900">
+                            {user?.ProjectName ||
+                              user?.projectName ||
+                              "Бүртгэгдээгүй"}
                           </p>
                         </div>
                       </div>
@@ -591,18 +627,8 @@ export default function ProfilePage() {
                   </div>
                 </section>
 
-                {/* 2. security */}
-                <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-                  <div className="border-b border-slate-100 px-6 py-4">
-                    <h2 className="text-sm font-bold text-slate-900">
-                      Аюулгүй байдал
-                    </h2>
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      Нэвтрэх нууц үг солих ба баталгаажуулалт
-                    </p>
-                  </div>
-
-                  <div className="p-5">
+                <section className="bg-white">
+                  <div className="px-1 py-4">
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-3.5">
                         <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600">
@@ -763,21 +789,7 @@ export default function ProfilePage() {
             )}
 
             {/* SALARY TAB */}
-            {activeTab === "salary" && (
-              <section className="space-y-5">
-                <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <h2 className="text-sm font-bold text-slate-900">
-                    Цалин тооцоолох
-                  </h2>
-                  <p className="mt-0.5 text-xs text-slate-500">
-                    Ажилласан өдөр болон бусад мэдээллээр цалингаа тооцоолно уу.
-                  </p>
-                </div>
-                <div>
-                  <SalaryCalc />
-                </div>
-              </section>
-            )}
+            {activeTab === "salary" && <SalaryCalc />}
 
             {/* FEEDBACK TAB */}
             {activeTab === "feedback" && (

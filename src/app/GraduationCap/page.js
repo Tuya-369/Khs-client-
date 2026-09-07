@@ -35,7 +35,14 @@ export default function GraduationCapPage() {
   return (
     <div className="min-h-screen bg-white px-4 py-6 text-slate-800 md:bg-slate-50 md:py-10">
       <div className="mx-auto max-w-6xl">
-        <button></button>
+        <button
+          type="button"
+          onClick={() => router.push("/profile")}
+          className="mb-5 inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
+        >
+          <ArrowLeft size={15} />
+          Буцах
+        </button>
 
         <div className="mb-6 flex flex-col gap-2 md:mb-8">
           <h1 className="text-2xl font-bold text-slate-900 md:text-4xl">

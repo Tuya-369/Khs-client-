@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  BriefcaseBusiness,
   Building2,
   Ellipsis,
   LockKeyhole,
@@ -68,19 +67,11 @@ export default function FeedbackPage() {
   return (
     <section className="mx-auto max-w-5xl py-3 sm:py-5">
       <header className="border-b border-slate-200 pb-6">
-        <div className="flex items-center gap-4">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-            <MessageSquareText size={20} />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">Санал, хүсэлт</h1>
-            <p className="mt-1 max-w-xl text-xs leading-5 text-slate-500 sm:text-sm">
-              Та өөрийн санал, хүсэлт, гомолоо тодорхой бичнэ үү. Бид таны
-              хүсэлтийг түргэн хугацаанд шийдвэрлэн, зохих арга хэмжээг авах
-              болно.
-            </p>
-          </div>
-        </div>
+        <h1 className="text-xl font-bold text-slate-900">Санал, хүсэлт</h1>
+        <p className="mt-1 max-w-xl text-xs leading-5 text-slate-500 sm:text-sm">
+          Та өөрийн санал, хүсэлт, гомолоо тодорхой бичнэ үү. Бид таны хүсэлтийг
+          түргэн хугацаанд шийдвэрлэн, зохих арга хэмжээг авах болно.
+        </p>
       </header>
 
       <form onSubmit={handleSubmit} className="space-y-7 pt-7">
@@ -100,7 +91,7 @@ export default function FeedbackPage() {
                   onClick={() => setCategory(value)}
                   className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border px-3 text-xs font-semibold transition sm:min-w-32 ${
                     isSelected
-                      ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm"
+                      ? "border-slate-900 bg-slate-900 text-white shadow-sm"
                       : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
                   }`}
                 >
@@ -146,7 +137,7 @@ export default function FeedbackPage() {
             maxLength={MAX_MESSAGE_LENGTH}
             rows={7}
             placeholder="Санал, хүсэлтээ энд бичнэ үү..."
-            className="w-full resize-none rounded-lg border border-slate-200 bg-white p-3.5 text-sm leading-6 text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            className="w-full resize-none rounded-lg border border-slate-200 bg-white p-3.5 text-sm leading-6 text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-slate-700 focus:ring-2 focus:ring-slate-200"
             required
           />
         </div>
@@ -154,7 +145,7 @@ export default function FeedbackPage() {
         <button
           type="submit"
           disabled={isSubmitting || !message.trim()}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-3 text-xs font-bold text-white transition hover:bg-blue-700 active:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 py-3 text-xs font-bold text-white transition hover:bg-slate-800 active:bg-slate-950 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <Send size={15} />
           {isSubmitting ? "Илгээж байна..." : "Илгээх"}

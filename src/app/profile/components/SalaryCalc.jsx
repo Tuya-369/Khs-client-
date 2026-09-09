@@ -42,7 +42,7 @@ export default function SalaryCalc() {
   const [otNightDays, setOtNightDays] = useState(0);
   const [holidayDayDays, setHolidayDayDays] = useState(0);
   const [holidayNightDays, setHolidayNightDays] = useState(0);
-  const [travelHours, setTravelHours] = useState(0);
+  const [travelHours, setTravelHours] = useState(10);
   const [fond, setFond] = useState(20000);
 
   const result = useMemo(() => {

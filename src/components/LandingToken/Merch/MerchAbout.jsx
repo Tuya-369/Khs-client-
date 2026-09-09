@@ -93,9 +93,9 @@ export default function MerchAbout({ item, onOrder }) {
 
   return (
     <>
-      <section className="mx-auto mt-4 w-full max-w-4xl bg-white p-6 md:p-10">
-        <div className="flex flex-col gap-10 md:flex-row md:items-start">
-          <div className="relative aspect-square w-full shrink-0 overflow-hidden rounded-3xl bg-[#F8F9FA] p-8 sm:w-72 md:w-96">
+      <section className="mx-auto mt-4 w-full max-w-4xl bg-white p-4 sm:p-6 md:p-10">
+        <div className="flex flex-col gap-6 sm:gap-8 md:flex-row md:items-start md:gap-10">
+          <div className="relative aspect-square w-full shrink-0 overflow-hidden rounded-2xl bg-[#F8F9FA] p-5 sm:w-72 sm:p-6 md:w-96 md:p-8">
             <Image
               src={item.imageUrl}
               alt={item.title}
@@ -107,18 +107,18 @@ export default function MerchAbout({ item, onOrder }) {
             />
           </div>
 
-          <div className="flex-1 space-y-8">
+          <div className="flex-1 space-y-5 sm:space-y-6 md:space-y-8">
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-neutral-900 md:text-3xl">
+              <h1 className="text-xl font-semibold tracking-tight text-neutral-900 sm:text-2xl md:text-3xl">
                 {item.title}
               </h1>
-              <p className="mt-3 text-sm leading-relaxed text-neutral-500 font-normal antialiased">
+              <p className="mt-2 text-xs leading-relaxed text-neutral-500 sm:mt-3 sm:text-sm font-normal antialiased">
                 {item.longDescription}
               </p>
             </div>
 
-            <div className="space-y-5 border-t border-neutral-100 pt-6">
-              <div className="flex items-center gap-4 py-1">
+            <div className="space-y-3 border-t border-neutral-100 pt-4 sm:space-y-5 sm:pt-6">
+              <div className="flex items-center gap-3 py-1 sm:gap-4">
                 <span className="text-xs font-semibold uppercase tracking-wider text-neutral-400 w-20 shrink-0">
                   Хэмжээ:
                 </span>
@@ -140,7 +140,7 @@ export default function MerchAbout({ item, onOrder }) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 py-1">
+              <div className="flex items-center gap-3 py-1 sm:gap-4">
                 <span className="text-xs font-semibold uppercase tracking-wider text-neutral-400 w-20 shrink-0">
                   Өнгө:
                 </span>
@@ -162,7 +162,7 @@ export default function MerchAbout({ item, onOrder }) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 py-1">
+              <div className="flex items-center gap-3 py-1 sm:gap-4">
                 <span className="text-xs font-semibold uppercase tracking-wider text-neutral-400 w-20 shrink-0">
                   Тоо:
                 </span>
@@ -190,11 +190,11 @@ export default function MerchAbout({ item, onOrder }) {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 pt-4">
+            <div className="flex items-center gap-2 pt-2 sm:gap-3 sm:pt-4">
               <button
                 type="button"
                 onClick={handleAddToCart}
-                className="flex-1 h-12 rounded-full border border-neutral-200 bg-white text-sm font-medium text-neutral-800 transition-all duration-300 hover:bg-neutral-50 hover:border-neutral-300 active:scale-[0.99] cursor-pointer"
+                className="flex-1 h-10 rounded-full border border-neutral-200 bg-white text-xs font-medium text-neutral-800 transition-all duration-300 hover:bg-neutral-50 hover:border-neutral-300 active:scale-[0.99] cursor-pointer sm:h-12 sm:text-sm"
                 aria-label="Cart"
               >
                 Сагсанд хийх
@@ -203,7 +203,7 @@ export default function MerchAbout({ item, onOrder }) {
                 type="button"
                 onClick={handleOrder}
                 disabled={isOrdering}
-                className="flex-1 h-12 rounded-full bg-neutral-950 text-sm font-medium text-white transition-all duration-300 hover:bg-neutral-800 active:scale-[0.99] cursor-pointer shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex-1 h-10 rounded-full bg-neutral-950 text-xs font-medium text-white transition-all duration-300 hover:bg-neutral-800 active:scale-[0.99] cursor-pointer shadow-sm disabled:cursor-not-allowed disabled:opacity-50 sm:h-12 sm:text-sm"
               >
                 {isOrdering ? "Илгээж байна..." : `Захиалах (${quantity})`}
               </button>

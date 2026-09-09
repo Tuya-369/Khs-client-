@@ -42,7 +42,7 @@ const apiRequest = async (path, options = {}) => {
 
   const requestHeaders = { ...headers };
 
-  if (!isFormData) {
+  if (!isFormData && body !== undefined) {
     requestHeaders["Content-Type"] = "application/json";
   }
 
@@ -138,8 +138,8 @@ export const api = {
     apiRequest("/api/auth/verify-forgot-otp", { method: "POST", body }),
   resetPassword: (body) =>
     apiRequest("/api/auth/reset-password", { method: "POST", body }),
-  getMerchItems: async () => {
-    const payload = await apiRequest("/api/merch");
+  getMerchItems: async (query) => {
+    const payload = await apiRequest(`/api/merch${toQueryString(query)}`);
     const normalizedData = Array.isArray(payload?.data)
       ? payload.data.map((item) => normalizeMerchItem(item)).filter(Boolean)
       : [];

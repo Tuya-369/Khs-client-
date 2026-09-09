@@ -7,7 +7,9 @@ import { usePathname } from "next/navigation";
 import { api } from "@/lib/api";
 
 let merchItemsCache = null;
+let merchItemsPaginationCache = null;
 let merchItemsRequest = null;
+const MERCH_PAGE_SIZE = 24;
 
 const getItemCategory = (item) => {
   const apiCategory = String(item.category || "")
@@ -37,10 +39,14 @@ const loadMerchItems = async () => {
 
   if (!merchItemsRequest) {
     merchItemsRequest = api
-      .getMerchItems()
+      .getMerchItems({ page: 1, limit: MERCH_PAGE_SIZE })
       .then((response) => {
         merchItemsCache = Array.isArray(response?.data) ? response.data : [];
-        return merchItemsCache;
+        merchItemsPaginationCache = response?.pagination || null;
+        return {
+          items: merchItemsCache,
+          pagination: merchItemsPaginationCache,
+        };
       })
       .finally(() => {
         merchItemsRequest = null;
@@ -58,6 +64,10 @@ export default function MerchCard({
 }) {
   const [items, setItems] = useState([]);
   const [category, setCategory] = useState("all");
+  const [pagination, setPagination] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState("");
   const pathname = usePathname();
 
   useEffect(() => {
@@ -65,12 +75,16 @@ export default function MerchCard({
 
     const loadItems = async () => {
       try {
-        const merchItems = await loadMerchItems();
+        const response = await loadMerchItems();
         if (!isMounted) return;
-        setItems(merchItems);
+        setItems(response.items);
+        setPagination(response.pagination);
       } catch {
         if (!isMounted) return;
         setItems([]);
+        setLoadError("Бүтээгдэхүүний жагсаалтыг ачаалж чадсангүй.");
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
     };
 
@@ -80,6 +94,40 @@ export default function MerchCard({
       isMounted = false;
     };
   }, []);
+
+  const currentPage = Number(pagination?.page) || 1;
+  const totalPages = Number(pagination?.totalPages);
+  const hasMoreItems = Number.isFinite(totalPages)
+    ? currentPage < totalPages
+    : items.length >= MERCH_PAGE_SIZE;
+
+  const loadMoreItems = async () => {
+    if (isLoadingMore || !hasMoreItems) return;
+
+    setIsLoadingMore(true);
+    setLoadError("");
+
+    try {
+      const response = await api.getMerchItems({
+        page: currentPage + 1,
+        limit: MERCH_PAGE_SIZE,
+      });
+      const nextItems = Array.isArray(response?.data) ? response.data : [];
+
+      setItems((currentItems) => {
+        const itemIds = new Set(currentItems.map((item) => item.id));
+        return [
+          ...currentItems,
+          ...nextItems.filter((item) => !itemIds.has(item.id)),
+        ];
+      });
+      setPagination(response?.pagination || null);
+    } catch {
+      setLoadError("Нэмэлт бүтээгдэхүүн ачаалж чадсангүй.");
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
   const visibleItems = useMemo(() => {
     const filteredItems = items.filter((item) => {
@@ -165,6 +213,14 @@ export default function MerchCard({
       </div>
 
       <div className={gridClassName}>
+        {isLoading &&
+          Array.from({ length: embedded ? 3 : 8 }, (_, index) => (
+            <div
+              key={index}
+              className="aspect-[3/4] animate-pulse bg-neutral-100"
+              aria-hidden="true"
+            />
+          ))}
         {visibleItems.map((item) => (
           <Link
             key={item.id}
@@ -223,6 +279,41 @@ export default function MerchCard({
           </Link>
         ))}
       </div>
+
+      {!isLoading && visibleItems.length === 0 && !loadError && (
+        <p className="mx-auto mt-8 max-w-6xl px-1 text-sm text-neutral-500">
+          Бүтээгдэхүүн олдсонгүй.
+        </p>
+      )}
+
+      {!isLoading && (loadError || hasMoreItems) && !itemLimit && (
+        <div className="mx-auto mt-8 flex max-w-6xl justify-center px-1">
+          {loadError ? (
+            <button
+              type="button"
+              onClick={loadMoreItems}
+              className="border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-800 transition-colors hover:border-neutral-500"
+            >
+              Дахин оролдох
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={loadMoreItems}
+              disabled={isLoadingMore}
+              className="border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-800 transition-colors hover:border-neutral-500 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isLoadingMore ? "Ачаалж байна..." : "Цааш үзэх"}
+            </button>
+          )}
+        </div>
+      )}
+
+      {loadError && !isLoading && (
+        <p className="mx-auto mt-3 max-w-6xl px-1 text-center text-sm text-red-600">
+          {loadError}
+        </p>
+      )}
     </section>
   );
 }

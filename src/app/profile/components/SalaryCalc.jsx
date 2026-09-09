@@ -325,9 +325,6 @@ export default function SalaryCalc() {
             <h3 className="text-sm font-bold text-slate-900">
               Тооцооллын үр дүн
             </h3>
-            <p className="text-[11px] text-slate-500">
-              Оруулсан өдрийн тоонд үндэслэв.
-            </p>
           </div>
 
           <div className="space-y-2 text-xs">

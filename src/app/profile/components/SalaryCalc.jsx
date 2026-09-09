@@ -11,7 +11,6 @@ const DAY_COEFFICIENTS = {
   holidayDay: 12,
   holidayNight: 13.6,
   holidayExtra: 4,
-  travelDay: 1,
 };
 
 const NDSH_CAP_BASE = 7920000;
@@ -43,7 +42,7 @@ export default function SalaryCalc() {
   const [otNightDays, setOtNightDays] = useState(0);
   const [holidayDayDays, setHolidayDayDays] = useState(0);
   const [holidayNightDays, setHolidayNightDays] = useState(0);
-  const [travelDays, setTravelDays] = useState(10);
+  const [travelHours, setTravelHours] = useState(0);
   const [fond, setFond] = useState(20000);
 
   const result = useMemo(() => {
@@ -53,7 +52,7 @@ export default function SalaryCalc() {
     const safeOtNight = Math.max(0, Number(otNightDays) || 0);
     const safeHolidayDay = Math.max(0, Number(holidayDayDays) || 0);
     const safeHolidayNight = Math.max(0, Number(holidayNightDays) || 0);
-    const safeTravelDays = Math.max(0, Number(travelDays) || 0);
+    const safeTravelHours = Math.max(0, Number(travelHours) || 0);
 
     const totalDays =
       safeDay +
@@ -61,8 +60,7 @@ export default function SalaryCalc() {
       safeOtDay +
       safeOtNight +
       safeHolidayDay +
-      safeHolidayNight +
-      safeTravelDays;
+      safeHolidayNight;
 
     const dayHours = round2(safeDay * DAY_COEFFICIENTS.dayShift);
     const nightHours = round2(safeNight * DAY_COEFFICIENTS.nightShift);
@@ -80,7 +78,7 @@ export default function SalaryCalc() {
     const holidayExtraHours = round2(
       (safeHolidayDay + safeHolidayNight) * DAY_COEFFICIENTS.holidayExtra,
     );
-    const travelHours = round2(safeTravelDays * DAY_COEFFICIENTS.travelDay);
+    const calculatedTravelHours = round2(safeTravelHours);
 
     const rawTotalHours =
       dayHours +
@@ -89,7 +87,7 @@ export default function SalaryCalc() {
       otNightHours +
       holidayDayHours +
       holidayNightHours +
-      travelHours;
+      calculatedTravelHours;
     const totalHours = round2(rawTotalHours);
 
     const gross = round2(totalHours * Math.max(0, Number(hourlyRate) || 0));
@@ -111,7 +109,7 @@ export default function SalaryCalc() {
       holidayDayHours,
       holidayNightHours,
       holidayExtraHours,
-      travelHours,
+      travelHours: calculatedTravelHours,
       totalHours,
       gross,
       ndsh,
@@ -129,7 +127,7 @@ export default function SalaryCalc() {
     otNightDays,
     holidayDayDays,
     holidayNightDays,
-    travelDays,
+    travelHours,
     fond,
   ]);
 
@@ -313,8 +311,8 @@ export default function SalaryCalc() {
               <input
                 type="number"
                 min="0"
-                value={travelDays || ""}
-                onChange={(e) => setTravelDays(Number(e.target.value))}
+                value={travelHours || ""}
+                onChange={(e) => setTravelHours(Number(e.target.value))}
                 className="w-20 rounded-lg border border-slate-200 px-2.5 py-1 text-right text-xs font-semibold text-slate-900 transition focus:border-[#4677b9] focus:outline-none focus:ring-1 focus:ring-[#4677b9] sm:w-full sm:text-left"
               />
             </div>

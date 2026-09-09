@@ -34,7 +34,10 @@ const getItemCategory = (item) => {
 
 const loadMerchItems = async () => {
   if (merchItemsCache) {
-    return merchItemsCache;
+    return {
+      items: merchItemsCache,
+      pagination: merchItemsPaginationCache,
+    };
   }
 
   if (!merchItemsRequest) {
@@ -146,8 +149,8 @@ export default function MerchCard({
     : "relative w-full overflow-hidden bg-linear-to-b from-white via-orange-50/40 to-white px-4 py-12 text-neutral-800 sm:px-8 md:px-12 md:py-24";
 
   const headerContainerClassName = embedded
-    ? "mx-auto mb-6 flex w-full max-w-6xl items-end justify-between px-1"
-    : "relative z-10 mx-auto mb-6 flex w-full max-w-6xl items-end justify-between px-1";
+    ? "mx-auto mb-6 flex w-full max-w-6xl flex-col items-start gap-3 px-1 sm:flex-row sm:items-end sm:justify-between"
+    : "relative z-10 mx-auto mb-6 flex w-full max-w-6xl flex-col items-start gap-3 px-1 sm:flex-row sm:items-end sm:justify-between";
 
   const gridClassName = embedded
     ? "mx-auto mt-6 grid w-full max-w-6xl grid-cols-2 gap-5 px-1 md:grid-cols-3"
@@ -175,7 +178,7 @@ export default function MerchCard({
           )}
         </div>
         <div
-          className="flex items-center gap-4"
+          className="flex w-full flex-wrap items-center gap-x-4 gap-y-2 sm:w-auto"
           aria-label="Бүтээгдэхүүний ангилал"
         >
           {[

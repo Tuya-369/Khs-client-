@@ -6,22 +6,12 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 
-const PROJECT_NAME_OPTIONS = [
-  { value: "UG", label: "UG" },
-  { value: "UB", label: "UB" },
-  { value: "BAYAJUULAH", label: "Баяжуулах" },
-  { value: "PROJECT", label: "Төсөл" },
-  { value: "OPERATION", label: "operation" },
-  { value: "CONTRACTION", label: "contraction" },
-];
-
 export default function RegisterForm() {
   const router = useRouter();
   const [formData, setFormData] = useState({
     lastName: "",
     firstName: "",
     sapId: "",
-    ProjectName: "",
     phoneNumber: "",
     password: "",
     confirmPassword: "",
@@ -76,7 +66,6 @@ export default function RegisterForm() {
         sapId: formData.sapId,
         firstName: formData.firstName,
         lastName: formData.lastName,
-        ProjectName: formData.ProjectName,
         phoneNumber: formData.phoneNumber,
         password: formData.password,
         confirmPassword: formData.confirmPassword,
@@ -240,28 +229,6 @@ export default function RegisterForm() {
                   className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 focus:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-400/40 transition-all"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-medium text-neutral-700 mb-1">
-                  Төслийн нэр
-                </label>
-                <select
-                  name="ProjectName"
-                  required
-                  value={formData.ProjectName}
-                  onChange={handleChange}
-                  className="w-full rounded-lg border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 placeholder-neutral-400 focus:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-400/40 transition-all"
-                >
-                  <option value="" disabled>
-                    Төслийн нэр сонгоно уу
-                  </option>
-                  {PROJECT_NAME_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-neutral-700 mb-1">

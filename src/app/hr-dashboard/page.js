@@ -450,7 +450,7 @@ export default function HrDashboardPage({ embedded = false }) {
           </p>
         ) : (
           <div className="space-y-3">
-            {paginatedFeedbackItems.map((item, index) => {
+            {paginatedFeedbackItems.map((item) => {
               const currentStatus =
                 statusConfig[item.status] || statusConfig.PENDING;
               const currentCategory =
@@ -463,9 +463,7 @@ export default function HrDashboardPage({ embedded = false }) {
               return (
                 <article
                   key={item.id}
-                  className={`rounded-lg border border-slate-200 bg-white p-4 shadow-sm ${
-                    index >= 3 ? "hidden sm:block" : ""
-                  }`}
+                  className="min-w-0 rounded-lg border border-slate-200 bg-white p-4 shadow-sm"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
@@ -499,7 +497,7 @@ export default function HrDashboardPage({ embedded = false }) {
                     </span>
                   </div>
 
-                  <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                  <p className="mt-4 break-words whitespace-pre-wrap text-sm leading-6 text-slate-700">
                     {item.message}
                   </p>
 

@@ -36,7 +36,7 @@ export default function ProfilePage() {
   const [user, setUser] = useState(null);
   const [merchOrders, setMerchOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState(true);
+  const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   const [activeEditSection, setActiveEditSection] = useState(null);

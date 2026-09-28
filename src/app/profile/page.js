@@ -84,18 +84,24 @@ export default function ProfilePage() {
       }
 
       try {
-        const response = await api.me(token);
-        const currentUser = response?.data?.user || null;
+        const [response, ordersResult] = await Promise.allSettled([
+          api.me(token),
+          api.getMyMerchOrders(token),
+        ]);
+
+        if (response.status === "rejected") {
+          throw response.reason;
+        }
+
+        const currentUser = response.value?.data?.user || null;
 
         setUser(currentUser);
         updateProfileUser(currentUser);
-
-        try {
-          const ordersResponse = await api.getMyMerchOrders(token);
-          setMerchOrders(ordersResponse?.data || []);
-        } catch {
-          setMerchOrders([]);
-        }
+        setMerchOrders(
+          ordersResult.status === "fulfilled"
+            ? ordersResult.value?.data || []
+            : [],
+        );
 
         setForm({
           lastName: currentUser?.lastName || "",

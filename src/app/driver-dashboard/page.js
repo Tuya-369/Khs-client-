@@ -2,10 +2,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Camera, Check, ChevronDown, Search, Send, X } from "lucide-react";
+import { Camera, ChevronDown, Send, X } from "lucide-react";
 import { ApiError, api } from "@/lib/api";
 import { clearSession, getAccessToken } from "@/lib/session";
 import DashboardProfileCard from "@/components/common/DashboardProfileCard";
+import VehicleCategories from "./components/VehicleCategories";
+import VehicleSelector from "./components/VehicleSelector";
 
 const MAX_DAMAGE_IMAGES = 2;
 const MAX_DAMAGE_IMAGE_SIZE = 20 * 1024 * 1024;
@@ -23,13 +25,13 @@ export function DriverDashboardContent({ embedded = false }) {
   const [profile, setProfile] = useState(null);
   const [vehicles, setVehicles] = useState([]);
   const [vehicleSearch, setVehicleSearch] = useState("");
-  const [showVehicleList, setShowVehicleList] = useState(false);
   const [activeCarId, setActiveCarId] = useState("");
   const [selectedPartIds, setSelectedPartIds] = useState([]);
   const [openCategoryIds, setOpenCategoryIds] = useState([]);
   const [damageImages, setDamageImages] = useState([]);
   const [issueDescription, setIssueDescription] = useState("");
   const [submittedOrders, setSubmittedOrders] = useState([]);
+  const [submittedOrdersOpen, setSubmittedOrdersOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -39,39 +41,6 @@ export function DriverDashboardContent({ embedded = false }) {
     () => vehicles.find((vehicle) => vehicle.id === activeCarId),
     [vehicles, activeCarId],
   );
-
-  const filteredVehicles = useMemo(() => {
-    const query = vehicleSearch.trim().toLocaleLowerCase();
-    if (!query) return vehicles;
-
-    return vehicles.filter((vehicle) => {
-      const vehicleMatches = [vehicle.name, vehicle.plate].some((value) =>
-        String(value || "")
-          .toLocaleLowerCase()
-          .includes(query),
-      );
-      const partMatches = vehicle.partCategories?.some((category) =>
-        [
-          category.name,
-          ...(category.parts || []).map((part) => part.name),
-        ].some((value) =>
-          String(value || "")
-            .toLocaleLowerCase()
-            .includes(query),
-        ),
-      );
-
-      return vehicleMatches || partMatches;
-    });
-  }, [vehicleSearch, vehicles]);
-
-  const matchesVehicleSearch = (value) =>
-    String(value || "")
-      .toLocaleLowerCase()
-      .includes(vehicleSearch.trim().toLocaleLowerCase());
-
-  const matchesCarSearch = (car) =>
-    [car.name, car.plate].some(matchesVehicleSearch);
 
   const statusLabel = (status) => {
     if (status === "APPROVED") return "Батлагдсан";
@@ -163,6 +132,18 @@ export function DriverDashboardContent({ embedded = false }) {
     };
   }, [damageImages]);
 
+  useEffect(() => {
+    if (!successMessage) return undefined;
+
+    const successTimer = window.setTimeout(() => {
+      setSuccessMessage("");
+    }, 3000);
+
+    return () => {
+      window.clearTimeout(successTimer);
+    };
+  }, [successMessage]);
+
   const handleDamageImagesUpload = (event) => {
     const files = Array.from(event.target.files || []);
     if (!files.length) return;
@@ -225,6 +206,23 @@ export function DriverDashboardContent({ embedded = false }) {
     });
   };
 
+  const selectVehicle = (vehicleId) => {
+    setActiveCarId(vehicleId);
+    setVehicleSearch("");
+    setSelectedPartIds([]);
+    setOpenCategoryIds([]);
+    setErrorMessage("");
+    setSuccessMessage("");
+  };
+
+  const changeVehicle = () => {
+    setActiveCarId("");
+    setVehicleSearch("");
+    setSelectedPartIds([]);
+    setOpenCategoryIds([]);
+    setSuccessMessage("");
+  };
+
   const togglePart = (partId) => {
     setSelectedPartIds((current) =>
       current.includes(partId)
@@ -249,11 +247,6 @@ export function DriverDashboardContent({ embedded = false }) {
 
     if (selectedPartIds.length === 0) {
       setErrorMessage("Дор хаяж нэг сэлбэг сонгоно уу.");
-      return;
-    }
-
-    if (damageImages.length === 0) {
-      setErrorMessage("Эвдэрсэн хэсгийн дор хаяж нэг зураг оруулна уу.");
       return;
     }
 
@@ -286,7 +279,9 @@ export function DriverDashboardContent({ embedded = false }) {
         (meta?.failedUploads ?? 0) + (meta?.oversizedSkipped ?? 0);
 
       setSuccessMessage(
-        `Хүсэлт илгээгдлээ. Амжилттай зураг: ${uploaded}, алгассан зураг: ${skipped}.`,
+        damageImages.length
+          ? `Хүсэлт илгээгдлээ. Амжилттай зураг: ${uploaded}, алгассан зураг: ${skipped}.`
+          : "Хүсэлт амжилттай илгээгдлээ.",
       );
 
       damageImages.forEach((image) => URL.revokeObjectURL(image.url));
@@ -294,6 +289,8 @@ export function DriverDashboardContent({ embedded = false }) {
       setIssueDescription("");
       setSelectedPartIds([]);
       setOpenCategoryIds([]);
+      setActiveCarId("");
+      setVehicleSearch("");
       await loadDashboardData();
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
@@ -345,182 +342,56 @@ export function DriverDashboardContent({ embedded = false }) {
         )}
 
         {successMessage && (
-          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700">
+          <div
+            role="status"
+            className="flex min-h-40 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-center text-lg font-bold text-emerald-800 shadow-xs"
+          >
             {successMessage}
           </div>
         )}
 
-        <div className="space-y-4">
-          <div className="flex gap-2">
-            <div className="relative min-w-0 flex-1">
-              <Search
-                size={17}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-              />
-              <input
-                type="search"
-                value={vehicleSearch}
-                onChange={(event) => setVehicleSearch(event.target.value)}
-                placeholder="Машины нэр, улсын дугаар, сэлбэгээр хайх"
-                className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-200"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowVehicleList((current) => !current)}
-              className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
-            >
-              {showVehicleList ? "Жагсаалт нуух" : "Бүх машин харах"}
-            </button>
-          </div>
-
-          {(showVehicleList || vehicleSearch.trim()) && (
-            <div className="space-y-2.5">
-              {filteredVehicles.map((car) => (
-                <div
-                  key={car.id}
-                  className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs transition-all"
-                >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveCarId(activeCarId === car.id ? "" : car.id);
-                      setSelectedPartIds([]);
-                      setOpenCategoryIds([]);
-                    }}
-                    className="w-full text-left p-4 sm:p-5 font-medium flex justify-between items-center hover:bg-slate-50/50 active:bg-slate-50 transition"
-                  >
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-slate-900 font-bold text-sm sm:text-base">
-                        {car.name}
-                      </span>
-                      <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-mono font-semibold">
-                        {car.plate}
-                      </span>
-                    </div>
-                    <ChevronDown
-                      size={18}
-                      className={`shrink-0 text-slate-400 transition-transform ${activeCarId === car.id ? "rotate-180" : ""}`}
-                    />
-                  </button>
-
-                  {activeCarId === car.id && (
-                    <div className="p-4 space-y-2 bg-slate-50/50 border-t border-slate-100">
-                      {car.partCategories
-                        ?.filter(
-                          (category) =>
-                            !vehicleSearch.trim() ||
-                            matchesCarSearch(car) ||
-                            matchesVehicleSearch(category.name) ||
-                            category.parts?.some((part) =>
-                              matchesVehicleSearch(part.name),
-                            ),
-                        )
-                        .map((category) => {
-                          const isOpen = openCategoryIds.includes(category.id);
-                          const showAllCategoryParts =
-                            !vehicleSearch.trim() ||
-                            matchesCarSearch(car) ||
-                            matchesVehicleSearch(category.name);
-                          const visibleParts = showAllCategoryParts
-                            ? category.parts
-                            : category.parts.filter((part) =>
-                                matchesVehicleSearch(part.name),
-                              );
-
-                          return (
-                            <div
-                              key={category.id}
-                              className="rounded-lg border border-slate-200 bg-white overflow-hidden"
-                            >
-                              <button
-                                type="button"
-                                onClick={() => toggleCategory(category.id)}
-                                className="w-full flex items-center justify-between gap-3 px-3.5 py-3 text-left text-xs font-bold text-slate-800 hover:bg-slate-50"
-                              >
-                                <span>{category.name}</span>
-                                <ChevronDown
-                                  size={16}
-                                  className={`text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
-                                />
-                              </button>
-                              {isOpen && (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 border-t border-slate-100 p-3">
-                                  {visibleParts.map((part) => {
-                                    const isSelected = selectedPartIds.includes(
-                                      part.id,
-                                    );
-                                    return (
-                                      <label
-                                        key={part.id}
-                                        className={`flex items-center gap-2.5 rounded-md border px-3 py-2.5 text-xs font-medium cursor-pointer transition ${isSelected ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 text-slate-700 hover:border-slate-400"}`}
-                                      >
-                                        <input
-                                          type="checkbox"
-                                          checked={isSelected}
-                                          onChange={() => togglePart(part.id)}
-                                          className="sr-only"
-                                        />
-                                        <span
-                                          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${isSelected ? "border-white bg-white text-slate-900" : "border-slate-300"}`}
-                                        >
-                                          {isSelected && (
-                                            <Check size={12} strokeWidth={3} />
-                                          )}
-                                        </span>
-                                        {part.name}
-                                      </label>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                    </div>
-                  )}
-                </div>
-              ))}
-
-              {!loading && vehicles.length === 0 && (
-                <div className="p-4 bg-white border border-slate-200 rounded-xl text-sm text-slate-500">
-                  Танд оноогдсон тээврийн хэрэгсэл алга.
-                </div>
-              )}
-
-              {!loading &&
-                vehicles.length > 0 &&
-                filteredVehicles.length === 0 && (
-                  <div className="p-4 bg-white border border-slate-200 rounded-xl text-sm text-slate-500">
-                    Тохирох тээврийн хэрэгсэл эсвэл сэлбэг олдсонгүй.
-                  </div>
-                )}
-            </div>
-          )}
-        </div>
+        <VehicleSelector
+          vehicles={vehicles}
+          search={vehicleSearch}
+          loading={loading}
+          activeVehicle={activeCar}
+          onSearchChange={setVehicleSearch}
+          onSelectVehicle={selectVehicle}
+          onChangeVehicle={changeVehicle}
+        />
 
         {activeCar && (
+          <VehicleCategories
+            vehicle={activeCar}
+            openCategoryIds={openCategoryIds}
+            selectedPartIds={selectedPartIds}
+            onToggleCategory={toggleCategory}
+            onTogglePart={togglePart}
+          />
+        )}
+
+        {activeCar && !successMessage && (
           <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-md space-y-4 animate-in fade-in duration-200">
-            <div>
-              <h4 className="font-bold text-sm sm:text-base text-slate-900">
-                Сонгосон:{" "}
-                <span className="text-amber-600">{activeCar.name}</span>
-              </h4>
+            <div className="border-b border-slate-100 pb-3">
+              <h2 className="text-base font-bold text-slate-900">
+                Захиалга өгөх
+              </h2>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Сонгосон тээврийн хэрэгсэл: {activeCar.name || activeCar.model}
+              </p>
             </div>
 
             <div className="flex flex-col gap-4">
               <div className="space-y-2">
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                  Эвдэрсэн хэсгийн зураг
+                  Эвдэрсэн хэсгийн зураг (заавал биш)
                 </label>
                 <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center hover:border-slate-400 bg-slate-50/50 relative active:bg-slate-100 transition-colors">
                   <label className="block cursor-pointer w-full h-full py-2">
                     <span className="text-xs font-semibold text-slate-700 block">
                       <Camera size={15} className="inline mr-1" /> Зураг нэмэх
                     </span>
-                    <span className="text-[10px] text-slate-400 block mt-0.5">
-                      JPG, PNG, WEBP, HEIC эсвэл HEIF (нэг бүр 20MB, ихдээ 5)
-                    </span>
+
                     <input
                       type="file"
                       accept="image/jpeg,image/jpg,image/png,image/webp,image/heic,image/heif"
@@ -609,75 +480,90 @@ export function DriverDashboardContent({ embedded = false }) {
         )}
 
         <div className="p-5 bg-white border border-slate-200 rounded-xl shadow-xs space-y-4">
-          <div className="border-b border-slate-100 pb-2.5">
-            <h3 className="text-base font-bold text-slate-900">
-              Өгсөн захиалгууд
-            </h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Таны илгээсэн хүсэлтүүд болон тэдгээрийн шийдвэрлэлтийн төлөв.
-            </p>
-          </div>
+          <button
+            type="button"
+            onClick={() => setSubmittedOrdersOpen((isOpen) => !isOpen)}
+            aria-expanded={submittedOrdersOpen}
+            className="flex w-full items-center justify-between gap-3 text-left"
+          >
+            <span>
+              <span className="block text-base font-bold text-slate-900">
+                Өгсөн захиалгууд
+              </span>
+              <span className="mt-0.5 block text-xs text-slate-500">
+                Нийт {submittedOrders.length} хүсэлт
+              </span>
+            </span>
+            <ChevronDown
+              size={18}
+              className={`shrink-0 text-slate-400 transition-transform ${submittedOrdersOpen ? "rotate-180" : ""}`}
+            />
+          </button>
 
-          {submittedOrders.length === 0 ? (
-            <p className="text-xs text-slate-400 py-4 text-center">
-              Одоогоор илгээсэн захиалга байхгүй байна.
-            </p>
-          ) : (
-            <div className="space-y-2.5">
-              {submittedOrders.map((order) => {
-                return (
-                  <div
-                    key={order.id}
-                    className="border border-slate-200 rounded-xl p-4 bg-slate-50/40 space-y-3"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-1">
-                        <div className="text-xs sm:text-sm font-bold text-slate-900">
-                          {order.vehicle?.name || "-"}{" "}
-                          <span className="text-slate-300 font-normal mx-1">
-                            |
-                          </span>{" "}
-                          {order.requestParts
-                            ?.map((item) => item.part?.name)
-                            .filter(Boolean)
-                            .join(", ") ||
-                            order.part?.name ||
-                            "Ерөнхий хүсэлт"}
-                        </div>
-                        <div className="text-[10px] text-slate-400 font-mono">
-                          {formatDate(order.createdAt)}
-                        </div>
-                      </div>
-
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wide border shrink-0 ${statusClass(order.status)}`}
+          {submittedOrdersOpen && (
+            <div className="border-t border-slate-100 pt-4">
+              {submittedOrders.length === 0 ? (
+                <p className="py-4 text-center text-xs text-slate-400">
+                  Одоогоор илгээсэн захиалга байхгүй байна.
+                </p>
+              ) : (
+                <div className="space-y-2.5">
+                  {submittedOrders.map((order) => {
+                    return (
+                      <div
+                        key={order.id}
+                        className="border border-slate-200 rounded-xl p-4 bg-slate-50/40 space-y-3"
                       >
-                        {statusLabel(order.status)}
-                      </span>
-                    </div>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1">
+                            <div className="text-xs sm:text-sm font-bold text-slate-900">
+                              {order.vehicle?.name || "-"}{" "}
+                              <span className="text-slate-300 font-normal mx-1">
+                                |
+                              </span>{" "}
+                              {order.requestParts
+                                ?.map((item) => item.part?.name)
+                                .filter(Boolean)
+                                .join(", ") ||
+                                order.part?.name ||
+                                "Ерөнхий хүсэлт"}
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-mono">
+                              {formatDate(order.createdAt)}
+                            </div>
+                          </div>
 
-                    <p className="text-xs text-slate-600 bg-white p-2.5 rounded-lg border border-slate-100 leading-relaxed font-normal">
-                      {order.description}
-                    </p>
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wide border shrink-0 ${statusClass(order.status)}`}
+                          >
+                            {statusLabel(order.status)}
+                          </span>
+                        </div>
 
-                    {order.status === "APPROVED" && (
-                      <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-xs font-medium text-emerald-800">
-                        Таны захиалгыг админ амжилттай баталлаа. Тантай эргэж
-                        холбогдох болно.
-                      </p>
-                    )}
+                        <p className="text-xs text-slate-600 bg-white p-2.5 rounded-lg border border-slate-100 leading-relaxed font-normal">
+                          {order.description}
+                        </p>
 
-                    {order.images?.length > 0 && (
-                      <div className="text-[11px] font-medium text-slate-400 flex items-center gap-1">
-                        📎 Хавсаргасан зураг:{" "}
-                        <span className="text-slate-700 font-semibold">
-                          {order.images?.length}
-                        </span>
+                        {order.status === "APPROVED" && (
+                          <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-xs font-medium text-emerald-800">
+                            Таны захиалгыг админ амжилттай баталлаа. Тантай
+                            эргэж холбогдох болно.
+                          </p>
+                        )}
+
+                        {order.images?.length > 0 && (
+                          <div className="text-[11px] font-medium text-slate-400 flex items-center gap-1">
+                            📎 Хавсаргасан зураг:{" "}
+                            <span className="text-slate-700 font-semibold">
+                              {order.images?.length}
+                            </span>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>

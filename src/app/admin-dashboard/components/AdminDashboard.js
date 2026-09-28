@@ -301,7 +301,6 @@ export default function AdminDashboard({ currentUser }) {
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 text-slate-500 font-semibold uppercase tracking-wider border-b border-slate-100">
                 <tr>
-                  <th className="p-3 w-16">ID</th>
                   <th className="p-3">SAP</th>
                   <th className="p-3">Захиалагч</th>
                   <th className="p-3">Огноо</th>
@@ -320,9 +319,6 @@ export default function AdminDashboard({ currentUser }) {
                       onClick={() => setSelectedItem(item)}
                       className="hover:bg-slate-50/80 cursor-pointer transition"
                     >
-                      <td className="p-3 text-slate-400 font-mono text-[10px]">
-                        {item.id?.slice(0, 6)}
-                      </td>
                       <td className="p-3 font-semibold text-slate-700">
                         {getRequesterSap(item, role, currentUser)}
                       </td>
@@ -457,9 +453,6 @@ export default function AdminDashboard({ currentUser }) {
                         <span className="text-xs font-bold text-slate-800 truncate">
                           {getRequesterName(item, role)}
                         </span>
-                        <span className="text-[10px] font-mono text-slate-400 shrink-0">
-                          #{item.id?.slice(0, 5)}
-                        </span>
                       </div>
                       <p className="text-[11px] font-medium text-slate-500 truncate">
                         SAP ID: {getRequesterSap(item, role, currentUser)}
@@ -570,10 +563,6 @@ export default function AdminDashboard({ currentUser }) {
               </button>
             </div>
             <div className="text-xs space-y-2.5 text-slate-700">
-              <p>
-                <span className="font-semibold text-slate-900">ID:</span>{" "}
-                {selectedItem.id}
-              </p>
               <p>
                 <span className="font-semibold text-slate-900">Захиалагч:</span>{" "}
                 {getRequesterName(selectedItem, role)}

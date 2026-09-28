@@ -257,9 +257,6 @@ export default function HrDashboardPage({ embedded = false }) {
             <div className="flex flex-col justify-between space-y-4 lg:pr-6">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex size-10 items-center justify-center rounded-xl border border-indigo-100 bg-indigo-50 text-indigo-600 shadow-sm">
-                    <MessageSquareText size={20} />
-                  </div>
                   <div>
                     <h3 className="text-sm font-semibold text-slate-900">
                       Санал, хүсэлт

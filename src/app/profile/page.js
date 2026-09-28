@@ -363,6 +363,7 @@ export default function ProfilePage() {
     "ADMIN_PANEL",
     "DRIVER",
     "TOKEN_MANAGER",
+    "HR",
   ].includes(user?.role);
 
   return (

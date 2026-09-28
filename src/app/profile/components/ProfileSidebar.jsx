@@ -78,13 +78,9 @@ export default function ProfileSidebar({
 
   const displayName =
     `${form.lastName} ${form.firstName}`.trim() || "Хэрэглэгч";
-  const mobileNavigationItems = navigationItems.filter(({ tab, roles }) => {
-    if (tab === "dashboard") {
-      return ["ADMIN", "ADMIN_PANEL"].includes(user?.role);
-    }
-
-    return !roles || roles.includes(user?.role);
-  });
+  const mobileNavigationItems = navigationItems.filter(
+    ({ roles }) => !roles || roles.includes(user?.role),
+  );
   const mobileMenuItems = [
     ...mobileNavigationItems,
     { label: "Төлөвлөгөө", icon: CalendarDays, href: "/calendar" },

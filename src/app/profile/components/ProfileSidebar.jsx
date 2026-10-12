@@ -24,6 +24,7 @@ const roleLabels = {
   TOKEN_MANAGER: "Токен менежер",
   DRIVER: "Механикч",
   HR: "Хүний нөөц",
+  SUPERADMIN: "Ахлах менежер",
 };
 
 const navigationItems = [
@@ -31,7 +32,14 @@ const navigationItems = [
     label: "Хянах самбар",
     icon: Gauge,
     tab: "dashboard",
-    roles: ["ADMIN", "ADMIN_PANEL", "DRIVER", "TOKEN_MANAGER", "HR"],
+    roles: [
+      "ADMIN",
+      "ADMIN_PANEL",
+      "DRIVER",
+      "TOKEN_MANAGER",
+      "HR",
+      "SUPERADMIN",
+    ],
   },
   {
     label: "Миний мэдээлэл",

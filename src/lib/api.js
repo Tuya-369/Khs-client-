@@ -1,10 +1,11 @@
 import { normalizeMerchItem } from "@/lib/merch";
 
-const API_BASE_URL =
+const backendApiUrl =
   process.env.NEXT_PUBLIC_API_URL ||
   process.env.VITE_API_URL ||
   process.env.REACT_APP_API_URL ||
   "http://localhost:5000";
+const API_BASE_URL = typeof window === "undefined" ? backendApiUrl : "/backend";
 import { clearSession } from "@/lib/session";
 
 export class ApiError extends Error {
@@ -156,6 +157,14 @@ export const api = {
       data: normalizeMerchItem(payload?.data, 0),
     };
   },
+  getMerchPartners: () => apiRequest("/api/merch-partners"),
+  updateMerchPartner: (token, id, formData) =>
+    apiRequest(`/api/admin/merch-partners/${id}`, {
+      method: "PATCH",
+      token,
+      body: formData,
+      isFormData: true,
+    }),
   createMerchOrder: (token, body) =>
     apiRequest("/api/merch-orders", { method: "POST", token, body }),
   me: (token) => apiRequest("/api/auth/me", { token }),
@@ -312,6 +321,13 @@ export const api = {
       token,
       body: { status },
     }),
+
+  getNotifications: (token, limit = 30) =>
+    apiRequest(`/api/notifications${toQueryString({ limit })}`, { token }),
+  markNotificationRead: (token, id) =>
+    apiRequest(`/api/notifications/${id}/read`, { method: "PATCH", token }),
+  markAllNotificationsRead: (token) =>
+    apiRequest("/api/notifications/read-all", { method: "PATCH", token }),
 
   getAdminSummary: (token) =>
     apiRequest("/api/dashboard/admin-summary", { token }),

@@ -497,7 +497,7 @@ export default function HrDashboardPage({ embedded = false }) {
                     </span>
                   </div>
 
-                  <p className="mt-4 break-words whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                  <p className="mt-4 `break-words whitespace-pre-wrap text-sm leading-6 text-slate-700">
                     {item.message}
                   </p>
 

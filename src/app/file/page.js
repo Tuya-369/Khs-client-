@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Eye } from "lucide-react";
 
-const CATEGORIES = ["Бүгд", "Тайлан", "Журам", "Хуудас"];
+const CATEGORIES = ["Бүгд", "Тайлан", "Журам", "Хуудас", "Хүсэлт"];
 
 const DOCUMENTS = [
   {
@@ -12,6 +12,12 @@ const DOCUMENTS = [
     title: "Ажилтны дотоод журам",
     category: "Журам",
     fileUrl: "/file/Juram.pdf",
+  },
+  {
+    id: 11,
+    title: "Чөлөөний хүсэлт илгээх",
+    category: "Хүсэлт",
+    internalLink: "/profile?tab=leave-request",
   },
   {
     id: 1,
@@ -126,15 +132,26 @@ export default function FilePage() {
                 </p>
 
                 <div className="flex items-center gap-4 shrink-0">
-                  <a
-                    href={doc.fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-xs text-orange-600 hover:text-orange-700 font-medium"
-                  >
-                    <Eye className="w-4 h-4" />
-                    Унших
-                  </a>
+                  {doc.internalLink ? (
+                    <button
+                      type="button"
+                      onClick={() => router.push(doc.internalLink)}
+                      className="flex items-center gap-1.5 text-xs text-orange-600 hover:text-orange-700 font-medium"
+                    >
+                      <Eye className="w-4 h-4" />
+                      Нээх
+                    </button>
+                  ) : (
+                    <a
+                      href={doc.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-xs text-orange-600 hover:text-orange-700 font-medium"
+                    >
+                      <Eye className="w-4 h-4" />
+                      Унших
+                    </a>
+                  )}
                 </div>
               </div>
             ))}

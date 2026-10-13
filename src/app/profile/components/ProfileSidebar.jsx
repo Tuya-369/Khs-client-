@@ -57,6 +57,11 @@ const navigationItems = [
     tab: "feedback",
   },
   {
+    label: "Чөлөөний хүсэлт",
+    icon: CalendarDays,
+    tab: "leave-request",
+  },
+  {
     label: "Цалин тооцоолох",
     icon: Wallet,
     tab: "salary",

@@ -6,7 +6,7 @@ const backendApiUrl =
   process.env.REACT_APP_API_URL ||
   "http://localhost:5000";
 const API_BASE_URL = typeof window === "undefined" ? backendApiUrl : "/backend";
-import { clearSession } from "@/lib/session";
+import { clearSession, getAccessToken, saveAccessToken } from "@/lib/session";
 
 export class ApiError extends Error {
   constructor(message, details = {}) {
@@ -32,6 +32,46 @@ const toQueryString = (query = {}) => {
   return encoded ? `?${encoded}` : "";
 };
 
+let refreshPromise;
+
+const refreshAccessToken = async () => {
+  if (!refreshPromise) {
+    refreshPromise = fetch(`${API_BASE_URL}/api/auth/refresh-token`, {
+      method: "POST",
+      credentials: "include",
+    })
+      .then(async (response) => {
+        const payload = await response.json().catch(() => null);
+        const accessToken = payload?.data?.accessToken;
+
+        if (!response.ok || !accessToken) {
+          throw new ApiError(
+            payload?.message || "Нэвтрэх хугацаа дууссан. Дахин нэвтэрнэ үү.",
+            {
+              status: response.status,
+              code: payload?.code,
+              payload,
+            },
+          );
+        }
+
+        saveAccessToken(accessToken);
+        return accessToken;
+      })
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
+
+  return refreshPromise;
+};
+
+const redirectToLogin = () => {
+  if (window.location.pathname !== "/auth") {
+    window.location.assign("/auth");
+  }
+};
+
 const apiRequest = async (path, options = {}) => {
   const {
     method = "GET",
@@ -39,7 +79,9 @@ const apiRequest = async (path, options = {}) => {
     token,
     headers = {},
     isFormData = false,
+    skipAuthRefresh = false,
   } = options;
+  const requestToken = token || getAccessToken();
 
   const requestHeaders = { ...headers };
 
@@ -47,8 +89,8 @@ const apiRequest = async (path, options = {}) => {
     requestHeaders["Content-Type"] = "application/json";
   }
 
-  if (token) {
-    requestHeaders.Authorization = `Bearer ${token}`;
+  if (requestToken) {
+    requestHeaders.Authorization = `Bearer ${requestToken}`;
   }
 
   let response;
@@ -105,10 +147,28 @@ const apiRequest = async (path, options = {}) => {
     }
 
     if (response.status === 401 && typeof window !== "undefined") {
-      clearSession();
-      const isLoginPage = window.location.pathname === "/auth";
-      if (!isLoginPage) {
-        window.location.assign("/auth");
+      if (requestToken && !skipAuthRefresh) {
+        let refreshedToken;
+        try {
+          refreshedToken = await refreshAccessToken();
+        } catch {
+          clearSession();
+          redirectToLogin();
+        }
+
+        if (refreshedToken) {
+          return apiRequest(path, {
+            ...options,
+            token: refreshedToken,
+            skipAuthRefresh: true,
+          });
+        }
+      } else if (
+        path !== "/api/auth/login" &&
+        path !== "/api/auth/verify-otp"
+      ) {
+        clearSession();
+        redirectToLogin();
       }
     }
 
@@ -317,6 +377,33 @@ export const api = {
   getHrFeedback: (token) => apiRequest("/api/feedback", { token }),
   updateFeedbackStatus: (token, id, status) =>
     apiRequest(`/api/feedback/${id}/status`, {
+      method: "PATCH",
+      token,
+      body: { status },
+    }),
+
+  createLeaveRequest: (token, data) => {
+    const formData = new FormData();
+    formData.append("type", data.type);
+    formData.append("startDate", data.startDate);
+    formData.append("endDate", data.endDate);
+    formData.append("reason", data.reason);
+    if (data.proofImage instanceof File) {
+      formData.append("proofImage", data.proofImage);
+    }
+
+    return apiRequest("/api/leave-requests", {
+      method: "POST",
+      token,
+      body: formData,
+      isFormData: true,
+    });
+  },
+  getMyLeaveRequests: (token) =>
+    apiRequest("/api/leave-requests/mine", { token }),
+  getLeaveRequests: (token) => apiRequest("/api/leave-requests", { token }),
+  updateLeaveRequestStatus: (token, id, status) =>
+    apiRequest(`/api/leave-requests/${id}/status`, {
       method: "PATCH",
       token,
       body: { status },

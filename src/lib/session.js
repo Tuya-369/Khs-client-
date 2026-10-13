@@ -26,6 +26,11 @@ export const saveSession = (accessToken, user) => {
   window.localStorage.setItem(USER_KEY, JSON.stringify(user));
 };
 
+export const saveAccessToken = (accessToken) => {
+  if (!isBrowser()) return;
+  window.localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+};
+
 export const clearSession = () => {
   if (!isBrowser()) return;
   window.localStorage.removeItem(ACCESS_TOKEN_KEY);

@@ -27,6 +27,7 @@ import AdminPanel from "../admin-dashboard/components/AdminPanel";
 import ProfileSidebar from "./components/ProfileSidebar";
 import { DriverDashboardContent } from "../driver-dashboard/page";
 import FeedbackPage from "../feedback/Page";
+import LeaveRequestPage from "../leave-request/Page";
 import HrDashboardPage from "../hr-dashboard/page";
 
 export default function ProfilePage() {
@@ -64,7 +65,13 @@ export default function ProfilePage() {
   });
   const { updateProfileUser } = useProfile();
 
-  const profileTabs = ["dashboard", "profile", "salary", "feedback"];
+  const profileTabs = [
+    "dashboard",
+    "profile",
+    "salary",
+    "feedback",
+    "leave-request",
+  ];
   const requestedTab = searchParams.get("tab");
   const activeTab = profileTabs.includes(requestedTab)
     ? requestedTab
@@ -802,6 +809,13 @@ export default function ProfilePage() {
             {activeTab === "feedback" && (
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                 <FeedbackPage />
+              </div>
+            )}
+
+            {/* LEAVE REQUEST TAB */}
+            {activeTab === "leave-request" && (
+              <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                <LeaveRequestPage />
               </div>
             )}
           </main>

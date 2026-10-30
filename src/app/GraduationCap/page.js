@@ -7,7 +7,7 @@ import { ArrowLeft, PlayCircle, Video } from "lucide-react";
 const VIDEO_DATA = [
   {
     id: "department-ogsm",
-    URL: "https://res.cloudinary.com/hfroefns/video/upload/v1788143333/2._%D0%90%D0%B6%D0%B8%D0%BB%D1%82%D0%BD%D1%8B_%D1%82%D3%A9%D0%BB%D3%A9%D0%B2%D0%BB%D3%A9%D0%B3%D3%A9%D3%A9_%D0%B1%D0%BE%D0%BB%D0%BE%D0%B2%D1%81%D1%80%D1%83%D1%83%D0%BB%D0%B0%D1%85_evtvoy.mp4",
+    URL: "https://res.cloudinary.com/hfroefns/video/upload/v1791962682/1._%D0%A5%D1%8D%D0%BB%D1%82%D1%8D%D1%81_%D0%BD%D1%8D%D0%B3%D0%B6%D0%B8%D0%B9%D0%BD_%D0%B0%D0%B6%D0%BB%D1%8B%D0%BD_%D1%82%D3%A9%D0%BB%D3%A9%D0%B2%D0%BB%D3%A9%D0%B3%D3%A9%D3%A9%D0%B3_OGSM_%D0%B7%D0%B0%D0%B3%D0%B2%D0%B0%D1%80%D0%B0%D0%B0%D1%80_%D1%82%D3%A9%D0%BB%D3%A9%D0%B2%D0%BB%D3%A9%D1%85_r4lzym.mp4",
     title: "Хэлтэс, нэгжийн ажлын төлөвлөгөөг OGSM загвараар төлөвлөх",
     description:
       "Энэ видеоны тусламжтайгаар ажлын төлөвлөгөө, зорилго, арга хэмжээ, хэмжүүрийг хэрхэн зөв төлөвлөхийг үзнэ.",

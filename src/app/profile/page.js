@@ -29,6 +29,7 @@ import { DriverDashboardContent } from "../driver-dashboard/page";
 import FeedbackPage from "../feedback/Page";
 import LeaveRequestPage from "../leave-request/Page";
 import HrDashboardPage from "../hr-dashboard/page";
+import LeaveRequestsReviewPanel from "../leave-request/components/LeaveRequestsReviewPanel";
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -39,6 +40,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [isMobileNavigationOpen, setIsMobileNavigationOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [canReviewLeaveRequests, setCanReviewLeaveRequests] = useState(false);
 
   const [activeEditSection, setActiveEditSection] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -91,9 +93,11 @@ export default function ProfilePage() {
       }
 
       try {
-        const [response, ordersResult] = await Promise.allSettled([
+        const [response, ordersResult, leaveReviewAccessResult] =
+          await Promise.allSettled([
           api.me(token),
           api.getMyMerchOrders(token),
+          api.getLeaveRequestReviewAccess(token),
         ]);
 
         if (response.status === "rejected") {
@@ -108,6 +112,10 @@ export default function ProfilePage() {
           ordersResult.status === "fulfilled"
             ? ordersResult.value?.data || []
             : [],
+        );
+        setCanReviewLeaveRequests(
+          leaveReviewAccessResult.status === "fulfilled" &&
+            leaveReviewAccessResult.value?.data?.canReview === true,
         );
 
         setForm({
@@ -371,7 +379,8 @@ export default function ProfilePage() {
     "DRIVER",
     "TOKEN_MANAGER",
     "HR",
-  ].includes(user?.role);
+    "SUPERADMIN",
+  ].includes(user?.role) || canReviewLeaveRequests;
 
   return (
     <div className="min-h-screen bg-slate-50/60 p-4 font-sans text-slate-900 antialiased sm:p-6 lg:p-8">
@@ -417,6 +426,7 @@ export default function ProfilePage() {
               setForm={setForm}
               activeTab={activeTab}
               setActiveTab={setActiveTab}
+              canReviewLeaveRequests={canReviewLeaveRequests}
               isMobileNavigationOpen={isMobileNavigationOpen}
               setIsMobileNavigationOpen={setIsMobileNavigationOpen}
             />
@@ -790,15 +800,13 @@ export default function ProfilePage() {
             {/* DASHBOARD TAB */}
             {activeTab === "dashboard" && (
               <div className="space-y-4">
+                {canReviewLeaveRequests && <LeaveRequestsReviewPanel />}
                 {user?.role === "DRIVER" && <DriverDashboardContent embedded />}
                 {user?.role === "ADMIN_PANEL" && <AdminPanel />}
                 {user?.role === "HR" && <HrDashboardPage embedded />}
-                {user?.role !== "DRIVER" &&
-                  hasDashboard &&
-                  user?.role !== "HR" &&
-                  user?.role !== "ADMIN_PANEL" && (
-                    <AdminDashboard currentUser={user} />
-                  )}
+                {user?.role === "ADMIN" && (
+                  <AdminDashboard currentUser={user} />
+                )}
               </div>
             )}
 

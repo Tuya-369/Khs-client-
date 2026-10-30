@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Building2,
@@ -24,12 +24,59 @@ const feedbackCategories = [
   { value: "OTHER", label: "Бусад", icon: Ellipsis },
 ];
 
+const feedbackStatusConfig = {
+  PENDING: {
+    label: "Хүлээгдэж байна",
+    className: "border-amber-200 bg-amber-50 text-amber-700",
+  },
+  RESOLVED: {
+    label: "Шийдвэрлэсэн",
+    className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  },
+  SUSPENDED: {
+    label: "Түдгэлзүүлсэн",
+    className: "border-slate-200 bg-slate-100 text-slate-700",
+  },
+};
+
+const formatDate = (date) => {
+  if (!date) return "-";
+  return new Intl.DateTimeFormat("mn-MN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(date));
+};
+
 export default function FeedbackPage() {
   const router = useRouter();
   const [message, setMessage] = useState("");
   const [category, setCategory] = useState("WORKPLACE");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState({ type: null, message: "" });
+  const [myFeedbacks, setMyFeedbacks] = useState([]);
+  const [loadingFeedbacks, setLoadingFeedbacks] = useState(true);
+
+  const loadMyFeedback = useCallback(async () => {
+    const token = getAccessToken();
+    if (!token) return;
+    try {
+      setLoadingFeedbacks(true);
+      const res = await api.getMyFeedback(token);
+      setMyFeedbacks(res?.data?.items || []);
+    } catch {
+      // ignore
+    } finally {
+      setLoadingFeedbacks(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const loadTimer = window.setTimeout(() => {
+      void loadMyFeedback();
+    }, 0);
+
+    return () => window.clearTimeout(loadTimer);
+  }, [loadMyFeedback]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -51,6 +98,7 @@ export default function FeedbackPage() {
           "Таны санал хүсэлтийг хүлээн авлаа. Бид тантай эргэн холбогдох болно. Баярлалаа.",
       });
       setMessage("");
+      void loadMyFeedback();
     } catch (error) {
       setStatus({
         type: "error",
@@ -156,6 +204,82 @@ export default function FeedbackPage() {
           Таны мэдээллийг нууцлалын дагуу хамгаална.
         </p>
       </form>
+
+      {/* Миний илгээсэн санал хүсэлтүүд */}
+      <section className="mt-10 border-t border-slate-200 pt-6 space-y-4">
+        <h2 className="text-sm font-bold text-slate-900">
+          Миний илгээсэн санал хүсэлтүүд
+        </h2>
+
+        {loadingFeedbacks ? (
+          <p className="text-xs text-slate-400">Уншиж байна...</p>
+        ) : myFeedbacks.length === 0 ? (
+          <p className="text-xs text-slate-400">
+            Та одоогоор санал хүсэлт илгээгээгүй байна.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {myFeedbacks.map((item) => {
+              const cat =
+                feedbackCategories.find((c) => c.value === item.category) ||
+                feedbackCategories[4];
+              const CatIcon = cat.icon;
+              const currentStatus =
+                feedbackStatusConfig[item.status] || feedbackStatusConfig.PENDING;
+
+              return (
+                <article
+                  key={item.id}
+                  className="rounded-xl border border-slate-200 bg-white p-4 text-xs shadow-xs space-y-2.5"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="inline-flex items-center gap-1.5 font-semibold text-slate-700">
+                      <CatIcon size={14} className="text-slate-400" />
+                      {cat.label}
+                    </span>
+                    <span
+                      className={`rounded-md border px-2.5 py-0.5 text-[11px] font-semibold ${currentStatus.className}`}
+                    >
+                      {currentStatus.label}
+                    </span>
+                  </div>
+
+                  <p className="whitespace-pre-wrap leading-5 text-slate-800">
+                    {item.message}
+                  </p>
+
+                  {item.response ? (
+                    <div className="rounded-lg border border-indigo-100 bg-indigo-50/70 p-3">
+                      <div className="flex items-center justify-between font-semibold text-indigo-950">
+                        <span className="flex items-center gap-1.5">
+                          <MessageSquareText size={13} className="text-indigo-600" />
+                          HR-ийн хариулт, шийдвэр:
+                        </span>
+                        {item.respondedAt && (
+                          <span className="text-[10px] font-normal text-indigo-500">
+                            {formatDate(item.respondedAt)}
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 whitespace-pre-wrap text-slate-700 leading-5">
+                        {item.response}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-slate-400 italic">
+                      Хариу, шийдвэр хүлээгдэж байна...
+                    </p>
+                  )}
+
+                  <div className="text-[10px] text-slate-400 border-t border-slate-100 pt-2 flex items-center justify-between">
+                    <span>Илгээсэн: {formatDate(item.createdAt)}</span>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
     </section>
   );
 }

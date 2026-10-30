@@ -375,19 +375,34 @@ export const api = {
   createFeedback: (token, body) =>
     apiRequest("/api/feedback", { method: "POST", token, body }),
   getHrFeedback: (token) => apiRequest("/api/feedback", { token }),
-  updateFeedbackStatus: (token, id, status) =>
-    apiRequest(`/api/feedback/${id}/status`, {
+  getMyFeedback: (token) => apiRequest("/api/feedback/mine", { token }),
+  updateFeedbackStatus: (token, id, statusOrPayload, maybeResponse) => {
+    const body =
+      typeof statusOrPayload === "object" && statusOrPayload !== null
+        ? statusOrPayload
+        : {
+            status: statusOrPayload,
+            ...(maybeResponse !== undefined ? { response: maybeResponse } : {}),
+          };
+
+    return apiRequest(`/api/feedback/${id}/status`, {
       method: "PATCH",
       token,
-      body: { status },
-    }),
+      body,
+    });
+  },
 
   createLeaveRequest: (token, data) => {
     const formData = new FormData();
     formData.append("type", data.type);
+    formData.append("durationType", data.durationType);
     formData.append("startDate", data.startDate);
     formData.append("endDate", data.endDate);
     formData.append("reason", data.reason);
+    formData.append(
+      "selectedApproverPhoneNumber",
+      data.selectedApproverPhoneNumber,
+    );
     if (data.proofImage instanceof File) {
       formData.append("proofImage", data.proofImage);
     }
@@ -401,6 +416,10 @@ export const api = {
   },
   getMyLeaveRequests: (token) =>
     apiRequest("/api/leave-requests/mine", { token }),
+  getLeaveRequestApprovers: (token) =>
+    apiRequest("/api/leave-requests/approvers", { token }),
+  getLeaveRequestReviewAccess: (token) =>
+    apiRequest("/api/leave-requests/review-access", { token }),
   getLeaveRequests: (token) => apiRequest("/api/leave-requests", { token }),
   updateLeaveRequestStatus: (token, id, status) =>
     apiRequest(`/api/leave-requests/${id}/status`, {

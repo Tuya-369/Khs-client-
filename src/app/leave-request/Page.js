@@ -1,33 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Briefcase,
-  Calendar,
-  Check,
-  Heart,
-  ImageIcon,
-  Send,
-  Upload,
-  User as UserIcon,
-  X,
-} from "lucide-react";
+import { Calendar, Clock, Send, Upload, X } from "lucide-react";
 import { ApiError, api } from "@/lib/api";
 import { getAccessToken } from "@/lib/session";
 
 const MAX_REASON_LENGTH = 1000;
 
-const leaveTypes = [
-  { value: "SICK", label: "Эмнэлэг", icon: Heart },
-  { value: "PERSONAL", label: "Хувийн", icon: UserIcon },
-  { value: "OTHER", label: "Бусад", icon: Briefcase },
-];
-
-const leaveTypeLabels = {
-  SICK: "Эмнэлэг",
-  PERSONAL: "Хувийн",
-  OTHER: "Бусад",
+const durationTypeLabels = {
+  DAILY: "Өдрөөр",
+  HOURLY: "Цагаар",
 };
 
 const statusConfig = {
@@ -45,41 +28,154 @@ const statusConfig = {
   },
 };
 
-const roleLabels = {
-  ADMIN: "Худалдан авалтын менежер",
-  ADMIN_PANEL: "Админ",
-  TOKEN_MANAGER: "Токен менежер",
-  DRIVER: "Механикч",
-  HR: "Хүний нөөц",
-  SUPERADMIN: "Ахлах менежер",
-  EMPLOYEE: "Ажилтан",
+const approvalLevelLabels = {
+  SENIOR_SPECIALIST: "Ахлах мэргэжилтэн",
+  UNIT_MANAGER: "Нэгжийн удирдлага",
+  HR_DIRECTOR: "Захиргаа, хүний нөөц хариуцсан захирал",
+  GENERAL_DIRECTOR: "Ерөнхий захирал",
 };
 
-const branchLabels = {
-  UG: "UG",
-  UB: "UB",
-  BAYAJUULAH: "Баяжуулах",
-  PROJECT: "Төсөл",
-  OPERATION: "Үйл ажиллагаа",
-  CONTRACTION: "Гэрээт ажил",
+const getWorkingDayCount = (startDate, endDate) => {
+  const [startYear, startMonth, startDay] = startDate
+    .split("-")
+    .map(Number);
+  const [endYear, endMonth, endDay] = endDate.split("-").map(Number);
+  const start = Date.UTC(startYear, startMonth - 1, startDay);
+  const end = Date.UTC(endYear, endMonth - 1, endDay);
+  let count = 0;
+
+  for (let timestamp = start; timestamp <= end; timestamp += 86400000) {
+    const weekday = new Date(timestamp).getUTCDay();
+    if (weekday !== 0 && weekday !== 6) count += 1;
+  }
+
+  return count;
 };
 
-const REVIEWER_ROLES = ["SUPERADMIN", "ADMIN_PANEL", "HR"];
+const addCalendarMonths = (date, months) => {
+  const [year, month, day] = date.split("-").map(Number);
+  const monthIndex = month - 1 + months;
+  const targetYear = year + Math.floor(monthIndex / 12);
+  const targetMonth = monthIndex % 12;
+  const lastDay = new Date(
+    Date.UTC(targetYear, targetMonth + 1, 0),
+  ).getUTCDate();
+  const targetDay = Math.min(day, lastDay);
+
+  return `${targetYear}-${String(targetMonth + 1).padStart(2, "0")}-${String(targetDay).padStart(2, "0")}`;
+};
+
+const getApprovalPolicy = (approvers, durationType, startDate, endDate) => {
+  if (durationType === "HOURLY") {
+    return {
+      workingDays: null,
+      approvalLabel: "Батлах менежер",
+      approvers: approvers.filter(
+        ({ approvalLevel }) => approvalLevel !== "GENERAL_DIRECTOR",
+      ),
+      error: "",
+    };
+  }
+
+  if (!startDate || !endDate) {
+    return { workingDays: null, approvalLabel: "", approvers: [], error: "" };
+  }
+
+  if (endDate < startDate) {
+    return {
+      workingDays: null,
+      approvalLabel: "",
+      approvers: [],
+      error: "Эхлэх огноо дуусах огнооноос хойш байж болохгүй.",
+    };
+  }
+
+  const workingDays = getWorkingDayCount(startDate, endDate);
+  if (endDate > addCalendarMonths(startDate, 3)) {
+    return {
+      workingDays,
+      approvalLabel: "",
+      approvers: [],
+      error: "Цалингүй чөлөөний хугацаа 3 сараас хэтэрч болохгүй.",
+    };
+  }
+  if (workingDays === 0) {
+    return {
+      workingDays,
+      approvalLabel: "",
+      approvers: [],
+      error: "Чөлөөний хугацаанд ажлын өдөр байх шаардлагатай.",
+    };
+  }
+
+  const unitManagers = approvers.filter(
+    ({ approvalLevel }) => approvalLevel === "UNIT_MANAGER",
+  );
+  let eligibleApprovers;
+  let approvalLabel;
+
+  if (workingDays <= 3) {
+    const seniorSpecialists = approvers.filter(
+      ({ approvalLevel }) => approvalLevel === "SENIOR_SPECIALIST",
+    );
+    eligibleApprovers =
+      seniorSpecialists.length > 0 ? seniorSpecialists : unitManagers;
+    approvalLabel =
+      seniorSpecialists.length > 0
+        ? approvalLevelLabels.SENIOR_SPECIALIST
+        : "Үйл ажиллагаа хариуцсан менежер";
+  } else if (workingDays <= 7) {
+    eligibleApprovers = unitManagers;
+    approvalLabel = approvalLevelLabels.UNIT_MANAGER;
+  } else if (workingDays <= 14) {
+    const hrDirectors = approvers.filter(
+      ({ approvalLevel }) => approvalLevel === "HR_DIRECTOR",
+    );
+    const responsibleHr = approvers.filter(
+      ({ isResponsibleHr }) => isResponsibleHr,
+    );
+    eligibleApprovers = hrDirectors.length > 0 ? hrDirectors : responsibleHr;
+    approvalLabel =
+      hrDirectors.length > 0
+        ? approvalLevelLabels.HR_DIRECTOR
+        : "Төслийн хүний нөөц хариуцагч";
+  } else {
+    eligibleApprovers = approvers.filter(
+      ({ approvalLevel }) => approvalLevel === "GENERAL_DIRECTOR",
+    );
+    approvalLabel = approvalLevelLabels.GENERAL_DIRECTOR;
+  }
+
+  if (eligibleApprovers.length === 0) {
+    return {
+      workingDays,
+      approvalLabel,
+      approvers: [],
+      error: `${approvalLabel} бүртгэгдээгүй байна. Хүний нөөцтэй холбогдоно уу.`,
+    };
+  }
+
+  return { workingDays, approvalLabel, approvers: eligibleApprovers, error: "" };
+};
 
 const formatDate = (date) => {
   if (!date) return "-";
-  return new Intl.DateTimeFormat("mn-MN", { dateStyle: "medium" }).format(
-    new Date(date),
-  );
-};
-
-const formatDateTime = (date) => {
-  if (!date) return "-";
   return new Intl.DateTimeFormat("mn-MN", {
     dateStyle: "medium",
+  }).format(new Date(date));
+};
+
+const formatTime = (date) => {
+  if (!date) return "-";
+  return new Intl.DateTimeFormat("mn-MN", {
     timeStyle: "short",
   }).format(new Date(date));
 };
+
+const formatLeaveDuration = (request) =>
+  request.durationType === "HOURLY"
+    ? `${formatDate(request.startDate)} ${formatTime(request.startDate)} - ${formatTime(request.endDate)}`
+    : `${formatDate(request.startDate)} - ${formatDate(request.endDate)}`;
 
 export default function LeaveRequestPage() {
   const router = useRouter();
@@ -88,9 +184,11 @@ export default function LeaveRequestPage() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const [type, setType] = useState("SICK");
+  const [durationType, setDurationType] = useState("DAILY");
   const [startDate, setStartDate] = useState("");
+  const [startTime, setStartTime] = useState("09:00");
   const [endDate, setEndDate] = useState("");
+  const [endTime, setEndTime] = useState("18:00");
   const [reason, setReason] = useState("");
   const [proofImage, setProofImage] = useState(null);
   const [proofImagePreview, setProofImagePreview] = useState("");
@@ -99,11 +197,21 @@ export default function LeaveRequestPage() {
   const [status, setStatus] = useState({ type: null, message: "" });
 
   const [myRequests, setMyRequests] = useState([]);
-  const [reviewRequests, setReviewRequests] = useState([]);
-  const [updatingId, setUpdatingId] = useState("");
-  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [approvers, setApprovers] = useState([]);
+  const [selectedApproverPhoneNumber, setSelectedApproverPhoneNumber] =
+    useState("");
 
-  const isReviewer = REVIEWER_ROLES.includes(currentUser?.role);
+  const approvalPolicy = useMemo(
+    () => getApprovalPolicy(approvers, durationType, startDate, endDate),
+    [approvers, durationType, startDate, endDate],
+  );
+  const effectiveSelectedApproverPhoneNumber = approvalPolicy.approvers.some(
+    (approver) => approver.phoneNumber === selectedApproverPhoneNumber,
+  )
+    ? selectedApproverPhoneNumber
+    : approvalPolicy.approvers.length === 1
+      ? approvalPolicy.approvers[0].phoneNumber
+      : "";
 
   const loadData = useCallback(async () => {
     const token = getAccessToken();
@@ -115,17 +223,18 @@ export default function LeaveRequestPage() {
     setLoading(true);
     setErrorMessage("");
     try {
-      const meResponse = await api.me(token);
-      const user = meResponse?.data?.user || null;
-      setCurrentUser(user);
-
-      const mineResponse = await api.getMyLeaveRequests(token);
+      const [mineResponse, approversResponse] = await Promise.all([
+        api.getMyLeaveRequests(token),
+        api.getLeaveRequestApprovers(token),
+      ]);
       setMyRequests(mineResponse?.data?.items || []);
-
-      if (REVIEWER_ROLES.includes(user?.role)) {
-        const reviewResponse = await api.getLeaveRequests(token);
-        setReviewRequests(reviewResponse?.data?.items || []);
-      }
+      const nextApprovers = approversResponse?.data?.items || [];
+      setApprovers(nextApprovers);
+      setSelectedApproverPhoneNumber((current) =>
+        nextApprovers.some((approver) => approver.phoneNumber === current)
+          ? current
+          : "",
+      );
     } catch (error) {
       setErrorMessage(
         error instanceof ApiError
@@ -180,22 +289,47 @@ export default function LeaveRequestPage() {
       });
       return;
     }
+    if (approvalPolicy.error) {
+      setStatus({
+        type: "error",
+        message: approvalPolicy.error,
+      });
+      return;
+    }
+    if (!effectiveSelectedApproverPhoneNumber) {
+      setStatus({
+        type: "error",
+        message: "Батлах ажилтнаа сонгоно уу.",
+      });
+      return;
+    }
 
     setIsSubmitting(true);
     setStatus({ type: null, message: "" });
 
     try {
+      const startDateTime =
+        durationType === "HOURLY"
+          ? `${startDate}T${startTime}:00`
+          : `${startDate}T00:00:00`;
+      const endDateTime =
+        durationType === "HOURLY"
+          ? `${startDate}T${endTime}:00`
+          : `${endDate}T23:59:59`;
+
       await api.createLeaveRequest(token, {
-        type,
-        startDate,
-        endDate,
+        type: "OTHER",
+        durationType,
+        startDate: startDateTime,
+        endDate: endDateTime,
         reason: reason.trim(),
         proofImage,
+        selectedApproverPhoneNumber: effectiveSelectedApproverPhoneNumber,
       });
 
       setStatus({
         type: "success",
-        message: "Таны чөлөөний хүсэлтийг амжилттай илгээлээ.",
+        message: "Таны хүсэлтийг амжилттай илгээлээ.",
       });
       setStartDate("");
       setEndDate("");
@@ -215,86 +349,74 @@ export default function LeaveRequestPage() {
     }
   };
 
-  const handleReview = async (id, nextStatus) => {
-    const token = getAccessToken();
-    if (!token) {
-      router.replace("/auth");
-      return;
-    }
-
-    setUpdatingId(id);
-    try {
-      await api.updateLeaveRequestStatus(token, id, nextStatus);
-      await loadData();
-      setSelectedRequest(null);
-    } catch (error) {
-      setErrorMessage(
-        error instanceof ApiError
-          ? error.message
-          : "Төлөв шинэчлэхэд алдаа гарлаа.",
-      );
-    } finally {
-      setUpdatingId("");
-    }
-  };
-
   return (
-    <section className="mx-auto max-w-3xl space-y-6 py-3 sm:py-5">
-      <header className="border-b border-slate-200 pb-5">
-        <h1 className="text-xl font-bold text-slate-900">Чөлөөний хүсэлт</h1>
-        <p className="mt-1 max-w-xl text-xs leading-5 text-slate-500 sm:text-sm">
-          Чөлөө авах огноо, шалтгаанаа бөглөж илгээнэ үү. Таны хүсэлтийг
-          хариуцсан ажилтанд мэдэгдэх болно.
+    <section className="mx-auto max-w-3xl px-4 space-y-6 py-4 sm:py-6">
+      <header className="border-b border-slate-200 pb-4">
+        <h1 className="text-lg sm:text-xl font-bold text-slate-900">
+          Чөлөөний хүсэлт
+        </h1>
+        <p className="mt-1 text-xs sm:text-sm text-slate-500">
+          Хугацааг ажлын өдрөөр тооцож, тохирох батлах түвшнийг автоматаар
+          сонгоно.
         </p>
       </header>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-800">
-              Ажилтны овог, нэр
-            </label>
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-700">
-              {currentUser
-                ? `${currentUser.lastName} ${currentUser.firstName}`
-                : "-"}
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-800">
-              Албан тушаал
-            </label>
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-700">
-              {roleLabels[currentUser?.role] || "-"}
-            </div>
-          </div>
-        </div>
+      {errorMessage && (
+        <p
+          role="alert"
+          className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700"
+        >
+          {errorMessage}
+        </p>
+      )}
 
-        <fieldset>
-          <legend className="text-xs font-bold text-slate-800">
-            Чөлөөний төрөл
-          </legend>
-          <div className="mt-3 grid grid-cols-3 gap-2">
-            {leaveTypes.map(({ value, label, icon: Icon }) => {
-              const isSelected = type === value;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setType(value)}
-                  className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border px-3 text-xs font-semibold transition ${
-                    isSelected
-                      ? "border-slate-900 bg-slate-900 text-white shadow-sm"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
-                  }`}
-                >
-                  <Icon size={16} />
-                  <span>{label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </fieldset>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-1.5">
+          <label
+            htmlFor="selectedApproverPhoneNumber"
+            className="text-xs font-bold text-slate-800"
+          >
+            Батлах ажилтан
+            {approvalPolicy.approvalLabel
+              ? ` · ${approvalPolicy.approvalLabel}`
+              : ""}{" "}
+            <span className="text-rose-500">*</span>
+          </label>
+          <select
+            id="selectedApproverPhoneNumber"
+            value={effectiveSelectedApproverPhoneNumber}
+            onChange={(event) =>
+              setSelectedApproverPhoneNumber(event.target.value)
+            }
+            disabled={loading || approvalPolicy.approvers.length === 0}
+            required
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:border-slate-700 disabled:bg-slate-100"
+          >
+            <option value="" disabled>
+              {loading
+                ? "Батлах ажилтны жагсаалт ачаалж байна..."
+                : approvalPolicy.approvers.length === 0
+                  ? "Ажлын огноогоо сонгоно уу"
+                  : "Батлах ажилтнаа сонгоно уу"}
+            </option>
+            {approvalPolicy.approvers.map((approver) => (
+              <option key={approver.phoneNumber} value={approver.phoneNumber}>
+                {approver.displayName || approver.phoneNumber}
+              </option>
+            ))}
+          </select>
+          {approvalPolicy.workingDays !== null && !approvalPolicy.error && (
+            <p className="text-xs text-slate-500">
+              Ажлын {approvalPolicy.workingDays} өдөр. Амралтын өдрүүдийг
+              тооцохгүй.
+            </p>
+          )}
+          {approvalPolicy.error && (
+            <p role="alert" className="text-xs text-rose-600">
+              {approvalPolicy.error}
+            </p>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
@@ -302,44 +424,90 @@ export default function LeaveRequestPage() {
               htmlFor="startDate"
               className="text-xs font-bold text-slate-800"
             >
-              Чөлөө эхлэх огноо <span className="text-rose-500">*</span>
+              {durationType === "HOURLY" ? "Огноо" : "Эхлэх огноо"}{" "}
+              <span className="text-rose-500">*</span>
             </label>
-            <div className="relative">
-              <Calendar
-                size={15}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-              />
-              <input
-                id="startDate"
-                type="date"
-                value={startDate}
-                onChange={(event) => setStartDate(event.target.value)}
-                className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-900 outline-none transition focus:border-slate-700 focus:ring-2 focus:ring-slate-200"
-                required
-              />
+            <div
+              className={`grid gap-2 ${
+                durationType === "HOURLY" ? "grid-cols-2" : "grid-cols-1"
+              }`}
+            >
+              <div className="relative">
+                <Calendar
+                  size={14}
+                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+                <input
+                  id="startDate"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => {
+                    setStartDate(e.target.value);
+                    if (durationType === "HOURLY") setEndDate(e.target.value);
+                  }}
+                  className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-8 pr-2 text-xs sm:text-sm text-slate-900 outline-none focus:border-slate-700"
+                  required
+                />
+              </div>
+              {durationType === "HOURLY" && (
+                <div className="relative">
+                  <Clock
+                    size={14}
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
+                  <input
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-8 pr-2 text-xs sm:text-sm text-slate-900 outline-none focus:border-slate-700"
+                    required
+                  />
+                </div>
+              )}
             </div>
           </div>
+
           <div className="space-y-1.5">
             <label
               htmlFor="endDate"
               className="text-xs font-bold text-slate-800"
             >
-              Чөлөө дуусах огноо <span className="text-rose-500">*</span>
+              {durationType === "HOURLY" ? "Дуусах цаг" : "Дуусах огноо"}{" "}
+              <span className="text-rose-500">*</span>
             </label>
-            <div className="relative">
-              <Calendar
-                size={15}
-                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-              />
-              <input
-                id="endDate"
-                type="date"
-                value={endDate}
-                min={startDate || undefined}
-                onChange={(event) => setEndDate(event.target.value)}
-                className="w-full rounded-lg border border-slate-200 bg-white py-2.5 pl-9 pr-3 text-sm text-slate-900 outline-none transition focus:border-slate-700 focus:ring-2 focus:ring-slate-200"
-                required
-              />
+            <div className="grid grid-cols-1 gap-2">
+              {durationType === "DAILY" && (
+                <div className="relative">
+                  <Calendar
+                    size={14}
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
+                  <input
+                    id="endDate"
+                    type="date"
+                    value={endDate}
+                    min={startDate || undefined}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-8 pr-2 text-xs sm:text-sm text-slate-900 outline-none focus:border-slate-700"
+                    required
+                  />
+                </div>
+              )}
+              {durationType === "HOURLY" && (
+                <div className="relative">
+                  <Clock
+                    size={14}
+                    className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
+                  <input
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-8 pr-2 text-xs sm:text-sm text-slate-900 outline-none focus:border-slate-700"
+                    required
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -347,7 +515,7 @@ export default function LeaveRequestPage() {
         {status.message && (
           <div
             role="status"
-            className={`rounded-lg border px-3 py-2.5 text-xs font-medium ${
+            className={`rounded-lg border px-3 py-2 text-xs font-medium ${
               status.type === "success"
                 ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                 : "border-rose-200 bg-rose-50 text-rose-700"
@@ -357,52 +525,46 @@ export default function LeaveRequestPage() {
           </div>
         )}
 
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <label
               htmlFor="reason"
               className="text-xs font-bold text-slate-800"
             >
-              Чөлөө хүсэх болсон шалтгаан{" "}
-              <span className="text-rose-500">*</span>
+              Шалтгаан <span className="text-rose-500">*</span>
             </label>
-            <span className="text-[11px] tabular-nums text-slate-400">
+            <span className="text-[11px] text-slate-400">
               {reason.length} / {MAX_REASON_LENGTH}
             </span>
           </div>
           <textarea
             id="reason"
             value={reason}
-            onChange={(event) => setReason(event.target.value)}
+            onChange={(e) => setReason(e.target.value)}
             maxLength={MAX_REASON_LENGTH}
-            rows={5}
-            placeholder="Шалтгаанаа энд бичнэ үү..."
-            className="w-full resize-none rounded-lg border border-slate-200 bg-white p-3.5 text-sm leading-6 text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-slate-700 focus:ring-2 focus:ring-slate-200"
+            rows={4}
+            placeholder="Шалтгаанаа тодорхой бичнэ үү..."
+            className="w-full resize-none rounded-lg border border-slate-200 bg-white p-3 text-xs sm:text-sm text-slate-900 outline-none focus:border-slate-700"
             required
           />
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <label className="text-xs font-bold text-slate-800">
-            Баталгаажуулах зураг <span className="text-rose-500">*</span>
+            Баталгаажуулах зураг / бичиг баримт{" "}
+            <span className="text-rose-500">*</span>
           </label>
-          <p className="text-[11px] text-slate-500">
-            Жишээ нь: эмчийн тодорхойлолт, баталгаажуулах бичиг баримт гэх мэт
-            зураг оруулна уу.
-          </p>
           {proofImagePreview ? (
-            <div className="relative w-fit max-w-[10rem] overflow-hidden rounded-lg border border-slate-200">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+            <div className="relative w-fit .max-w-[10rem] overflow-hidden rounded-lg border border-slate-200">
               <img
                 src={proofImagePreview}
                 alt="Баталгаажуулах зураг"
-                className="max-h-28 w-auto max-w-full object-contain"
+                className="max-h-28 w-auto object-contain"
               />
               <button
                 type="button"
                 onClick={resetProofImage}
-                className="absolute right-1 top-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-900/80 text-white transition hover:bg-slate-900"
-                aria-label="Зураг хасах"
+                className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-white"
               >
                 <X size={11} />
               </button>
@@ -410,11 +572,11 @@ export default function LeaveRequestPage() {
           ) : (
             <label
               htmlFor="proofImage"
-              className="flex min-h-16 w-full max-w-xs cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-center transition hover:border-slate-400 hover:bg-slate-100"
+              className="flex min-h-16 w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-center transition hover:bg-slate-100"
             >
               <Upload size={16} className="text-slate-400" />
               <span className="text-xs font-semibold text-slate-600">
-                Зураг оруулахын тулд энд дарна уу
+                Эмчийн магадлан эсвэл холбогдох зураг оруулна уу.
               </span>
             </label>
           )}
@@ -435,17 +597,22 @@ export default function LeaveRequestPage() {
             !startDate ||
             !endDate ||
             !reason.trim() ||
-            !proofImage
+            !proofImage ||
+            !effectiveSelectedApproverPhoneNumber ||
+            approvalPolicy.approvers.length === 0 ||
+            Boolean(approvalPolicy.error)
           }
-          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 py-3 text-xs font-bold text-white transition hover:bg-slate-800 active:bg-slate-950 disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 py-3 text-xs font-bold text-white transition hover:bg-slate-800 disabled:opacity-40"
         >
           <Send size={15} />
-          {isSubmitting ? "Илгээж байна..." : "Илгээх"}
+          {isSubmitting ? "Илгээж байна..." : "Хүсэлт илгээх"}
         </button>
       </form>
 
       <section className="space-y-3">
-        <h2 className="text-sm font-bold text-slate-900">Миний хүсэлтүүд</h2>
+        <h2 className="text-xs sm:text-sm font-bold text-slate-900">
+          Миний хүсэлтүүд
+        </h2>
         {loading ? (
           <p className="text-xs text-slate-500">Уншиж байна...</p>
         ) : myRequests.length === 0 ? (
@@ -455,20 +622,10 @@ export default function LeaveRequestPage() {
             {myRequests.map((item) => (
               <div
                 key={item.id}
-                className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-3.5 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-3 sm:flex-row sm:items-center sm:justify-between text-xs"
               >
-                <div>
-                  <p className="text-xs font-semibold text-slate-800">
-                    {leaveTypeLabels[item.type]} · {formatDate(item.startDate)}{" "}
-                    - {formatDate(item.endDate)}
-                  </p>
-                  <p className="mt-1 text-xs text-slate-500">{item.reason}</p>
-                  <p className="mt-1 text-[11px] text-slate-400">
-                    Илгээсэн: {formatDateTime(item.createdAt)}
-                  </p>
-                </div>
                 <span
-                  className={`inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${statusConfig[item.status]?.className}`}
+                  className={`inline-flex w-fit items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${statusConfig[item.status]?.className}`}
                 >
                   {statusConfig[item.status]?.label}
                 </span>
@@ -477,173 +634,6 @@ export default function LeaveRequestPage() {
           </div>
         )}
       </section>
-
-      {isReviewer && (
-        <section className="space-y-3 border-t border-slate-200 pt-6">
-          <h2 className="text-sm font-bold text-slate-900">
-            Хариуцсан хүсэлтүүд
-          </h2>
-          {errorMessage && (
-            <p className="text-xs font-medium text-rose-600">{errorMessage}</p>
-          )}
-          {reviewRequests.length === 0 ? (
-            <p className="text-xs text-slate-500">Хүсэлт байхгүй байна.</p>
-          ) : (
-            <div className="space-y-2">
-              {reviewRequests.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setSelectedRequest(item)}
-                  className="flex w-full flex-col gap-3 rounded-lg border border-slate-200 bg-white p-3.5 text-left transition hover:border-slate-300 hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div>
-                    <p className="text-xs font-semibold text-slate-800">
-                      {item.lastName} {item.firstName} ·{" "}
-                      {roleLabels[item.role] || item.role}
-                    </p>
-                    <p className="mt-0.5 text-[11px] text-slate-500">
-                      {branchLabels[item.ProjectName] || item.ProjectName}
-                      {item.sapId ? ` · SAP: ${item.sapId}` : ""}
-                      {item.phoneNumber ? ` · ${item.phoneNumber}` : ""}
-                    </p>
-                    <p className="mt-1 text-xs text-slate-600">
-                      {leaveTypeLabels[item.type]} ·{" "}
-                      {formatDate(item.startDate)} - {formatDate(item.endDate)}
-                    </p>
-                    <p className="mt-1 text-xs text-slate-500">{item.reason}</p>
-                    <p className="mt-1 text-[11px] text-slate-400">
-                      Илгээсэн: {formatDateTime(item.createdAt)}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {item.proofImageUrl && (
-                      <ImageIcon size={14} className="text-slate-400" />
-                    )}
-                    <span
-                      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${statusConfig[item.status]?.className}`}
-                    >
-                      {statusConfig[item.status]?.label}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
-
-      {selectedRequest && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
-          onClick={() => setSelectedRequest(null)}
-        >
-          <div
-            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-5 shadow-xl"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h3 className="text-sm font-bold text-slate-900">
-                  {selectedRequest.lastName} {selectedRequest.firstName}
-                </h3>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  {roleLabels[selectedRequest.role] || selectedRequest.role} ·{" "}
-                  {branchLabels[selectedRequest.ProjectName] ||
-                    selectedRequest.ProjectName}
-                </p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  {selectedRequest.sapId ? `SAP: ${selectedRequest.sapId}` : ""}
-                  {selectedRequest.sapId && selectedRequest.phoneNumber
-                    ? " · "
-                    : ""}
-                  {selectedRequest.phoneNumber || ""}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedRequest(null)}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-                aria-label="Хаах"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <div className="mt-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-700">
-                  {leaveTypeLabels[selectedRequest.type]} ·{" "}
-                  {formatDate(selectedRequest.startDate)} -{" "}
-                  {formatDate(selectedRequest.endDate)}
-                </span>
-                <span
-                  className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${statusConfig[selectedRequest.status]?.className}`}
-                >
-                  {statusConfig[selectedRequest.status]?.label}
-                </span>
-              </div>
-
-              <p className="text-[11px] text-slate-400">
-                Илгээсэн: {formatDateTime(selectedRequest.createdAt)}
-              </p>
-
-              <div>
-                <p className="text-xs font-bold text-slate-800">Шалтгаан</p>
-                <p className="mt-1 text-xs leading-5 text-slate-600">
-                  {selectedRequest.reason}
-                </p>
-              </div>
-
-              {selectedRequest.proofImageUrl && (
-                <div>
-                  <p className="text-xs font-bold text-slate-800">
-                    Баталгаажуулах зураг
-                  </p>
-                  <a
-                    href={selectedRequest.proofImageUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-1.5 block w-fit max-w-[12rem]"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={selectedRequest.proofImageUrl}
-                      alt="Баталгаажуулах зураг"
-                      className="max-h-40 w-auto max-w-full rounded-lg border border-slate-200 object-contain"
-                    />
-                  </a>
-                </div>
-              )}
-            </div>
-
-            {selectedRequest.status === "PENDING" && (
-              <div className="mt-5 flex items-center gap-2">
-                <button
-                  type="button"
-                  disabled={updatingId === selectedRequest.id}
-                  onClick={() => handleReview(selectedRequest.id, "APPROVED")}
-                  className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-40"
-                >
-                  <Check size={14} />
-                  Зөвшөөрөх
-                </button>
-                <button
-                  type="button"
-                  disabled={updatingId === selectedRequest.id}
-                  onClick={() => handleReview(selectedRequest.id, "REJECTED")}
-                  className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-40"
-                >
-                  <X size={14} />
-                  Татгалзах
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </section>
   );
 }

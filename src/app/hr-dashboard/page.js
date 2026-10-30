@@ -9,6 +9,7 @@ import {
   Clock3,
   MessageSquareText,
   Pause,
+  Send,
 } from "lucide-react";
 import { ApiError, api } from "@/lib/api";
 import { clearSession, getAccessToken } from "@/lib/session";
@@ -107,6 +108,12 @@ export default function HrDashboardPage({ embedded = false }) {
   const [branchFilter, setBranchFilter] = useState("ALL");
   const [page, setPage] = useState(0);
 
+  // Санал хүсэлтийн хариу, шийдвэр бичих төлөв
+  const [respondingId, setRespondingId] = useState(null);
+  const [draftStatus, setDraftStatus] = useState("RESOLVED");
+  const [draftResponse, setDraftResponse] = useState("");
+  const [submittingResponse, setSubmittingResponse] = useState(false);
+
   const loadFeedback = useCallback(async () => {
     const token = getAccessToken();
     if (!token) {
@@ -151,28 +158,56 @@ export default function HrDashboardPage({ embedded = false }) {
     return () => window.clearTimeout(loadTimer);
   }, [loadFeedback]);
 
-  const updateStatus = async (id, status) => {
+  const startResponding = (item) => {
+    setRespondingId(item.id);
+    setDraftStatus(item.status === "PENDING" ? "RESOLVED" : item.status);
+    setDraftResponse(item.response || "");
+  };
+
+  const cancelResponding = () => {
+    setRespondingId(null);
+    setDraftStatus("RESOLVED");
+    setDraftResponse("");
+  };
+
+  const submitResponse = async (id) => {
     const token = getAccessToken();
     if (!token) {
       router.replace("/auth");
       return;
     }
 
-    setUpdatingId(id);
+    setSubmittingResponse(true);
     setErrorMessage("");
     try {
-      await api.updateFeedbackStatus(token, id, status);
+      const res = await api.updateFeedbackStatus(token, id, {
+        status: draftStatus,
+        response: draftResponse.trim(),
+      });
+      const updated = res?.data;
+
       setFeedbackItems((items) =>
-        items.map((item) => (item.id === id ? { ...item, status } : item)),
+        items.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                status: draftStatus,
+                response: draftResponse.trim() || item.response,
+                respondedAt: new Date().toISOString(),
+                ...(updated || {}),
+              }
+            : item,
+        ),
       );
+      setRespondingId(null);
     } catch (error) {
       setErrorMessage(
         error instanceof ApiError
           ? error.message
-          : "Төлөв шинэчлэхэд алдаа гарлаа.",
+          : "Хариу, шийдвэр илгээхэд алдаа гарлаа.",
       );
     } finally {
-      setUpdatingId("");
+      setSubmittingResponse(false);
     }
   };
 
@@ -497,36 +532,127 @@ export default function HrDashboardPage({ embedded = false }) {
                     </span>
                   </div>
 
-                  <p className="mt-4 `break-words whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                  <p className="mt-4 .break-words whitespace-pre-wrap text-sm leading-6 text-slate-700">
                     {item.message}
                   </p>
 
-                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
-                    <span className="inline-flex items-center gap-1.5 text-xs text-slate-400">
-                      <Clock3 size={14} />
-                      {formatDate(item.createdAt)}
-                    </span>
-                    <div className="flex gap-2">
+                  {item.response && respondingId !== item.id && (
+                    <div className="mt-3 rounded-lg border border-indigo-100 bg-indigo-50/70 p-3 text-xs">
+                      <div className="flex items-center justify-between font-semibold text-indigo-950">
+                        <span className="flex items-center gap-1.5">
+                          <MessageSquareText
+                            size={13}
+                            className="text-indigo-600"
+                          />
+                          HR-ийн хариулт, шийдвэр:
+                        </span>
+                        {item.respondedAt && (
+                          <span className="text-[10px] font-normal text-indigo-500">
+                            {formatDate(item.respondedAt)}
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 whitespace-pre-wrap text-slate-700 leading-5">
+                        {item.response}
+                      </p>
+                    </div>
+                  )}
+
+                  {respondingId === item.id ? (
+                    <div className="mt-4 space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-3.5">
+                      <div>
+                        <label className="text-xs font-bold text-slate-800">
+                          Төлөв сонгох:
+                        </label>
+                        <div className="mt-1.5 flex flex-wrap gap-2">
+                          {[
+                            {
+                              value: "RESOLVED",
+                              label: "Шийдвэрлэсэн",
+                              activeClass:
+                                "border-emerald-300 bg-emerald-100 text-emerald-800",
+                            },
+                            {
+                              value: "SUSPENDED",
+                              label: "Түдгэлзүүлсэн",
+                              activeClass:
+                                "border-slate-400 bg-slate-200 text-slate-800",
+                            },
+                            {
+                              value: "PENDING",
+                              label: "Хүлээгдэж байна",
+                              activeClass:
+                                "border-amber-300 bg-amber-100 text-amber-800",
+                            },
+                          ].map((opt) => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => setDraftStatus(opt.value)}
+                              className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition ${
+                                draftStatus === opt.value
+                                  ? opt.activeClass
+                                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-100"
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        j{" "}
+                        <textarea
+                          id={`response-${item.id}`}
+                          rows={3}
+                          value={draftResponse}
+                          onChange={(e) => setDraftResponse(e.target.value)}
+                          placeholder="Шийдвэрийн тайлбар, ажилтанд илгээх хариулт бичнэ үү..."
+                          className="mt-1.5 w-full resize-none rounded-lg border border-slate-200 bg-white p-2.5 text-xs text-slate-900 outline-none focus:border-slate-700 focus:ring-1 focus:ring-slate-300"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-end gap-2 pt-1">
+                        <button
+                          type="button"
+                          disabled={submittingResponse}
+                          onClick={cancelResponding}
+                          className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+                        >
+                          Болих
+                        </button>
+                        <button
+                          type="button"
+                          disabled={submittingResponse}
+                          onClick={() => void submitResponse(item.id)}
+                          className="inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+                        >
+                          <Send size={12} />
+                          {submittingResponse
+                            ? "Илгээж байна..."
+                            : "Шийдвэр илгээх"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+                      <span className="inline-flex items-center gap-1.5 text-xs text-slate-400">
+                        <Clock3 size={14} />
+                        {formatDate(item.createdAt)}
+                      </span>
                       <button
                         type="button"
-                        disabled={isUpdating || item.status === "RESOLVED"}
-                        onClick={() => void updateStatus(item.id, "RESOLVED")}
-                        className="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        onClick={() => startResponding(item)}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-xs hover:border-slate-400 hover:bg-slate-50 transition"
                       >
-                        <Check size={14} />
-                        Шийдвэрлэсэн
-                      </button>
-                      <button
-                        type="button"
-                        disabled={isUpdating || item.status === "SUSPENDED"}
-                        onClick={() => void updateStatus(item.id, "SUSPENDED")}
-                        className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <Pause size={14} />
-                        Түдгэлзүүлсэн
+                        <MessageSquareText size={13} />
+                        {item.response
+                          ? "Төлөв / Хариу засах"
+                          : "Төлөв өөрчлөх, хариу бичих"}
                       </button>
                     </div>
-                  </div>
+                  )}
                 </article>
               );
             })}

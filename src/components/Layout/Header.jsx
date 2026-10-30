@@ -132,10 +132,9 @@ export default function Header() {
           <Image
             src="/logo.png"
             alt="Logo"
-            width={120}
+            width={101}
             height={40}
             priority
-            className="h-10 w-auto"
           />
         </Link>
 

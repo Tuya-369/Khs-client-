@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ApiError, api } from "@/lib/api";
 import { getAccessToken } from "@/lib/session";
+import LeaveRequestsReviewPanel from "@/app/leave-request/components/LeaveRequestsReviewPanel";
 
 const formatDate = (value) => {
   if (!value) return "-";
@@ -151,6 +152,12 @@ function FeedbackCard({ feedback }) {
       <p className="mt-2 whitespace-pre-wrap text-[11px] leading-5 text-slate-600">
         {feedback?.message || "-"}
       </p>
+      {feedback?.response && (
+        <div className="mt-2 rounded-lg border border-indigo-100 bg-indigo-50/70 p-2.5 text-[11px] text-slate-700">
+          <p className="font-semibold text-indigo-950">Хариулт, шийдвэр:</p>
+          <p className="mt-0.5 whitespace-pre-wrap leading-4.5">{feedback.response}</p>
+        </div>
+      )}
       <p className="mt-1 text-[11px] text-slate-400">
         Илгээсэн: {formatDate(feedback?.createdAt)}
       </p>
@@ -163,6 +170,8 @@ export default function AdminPanel() {
   const [reviewedOrders, setReviewedOrders] = useState([]);
   const [partRequests, setPartRequests] = useState([]);
   const [feedbackItems, setFeedbackItems] = useState([]);
+  const [leaveRequests, setLeaveRequests] = useState([]);
+  const [canViewLeaveRequests, setCanViewLeaveRequests] = useState(false);
   const [activeView, setActiveView] = useState("merch");
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
@@ -175,16 +184,23 @@ export default function AdminPanel() {
       setLoading(true);
       setErrorMessage("");
       try {
-        const [merchResponse, requestsResponse, feedbackResponse] =
+        const leaveRequestsPromise = api.getLeaveRequests(token).catch((error) => {
+          if (error instanceof ApiError && error.status === 403) return null;
+          throw error;
+        });
+        const [merchResponse, requestsResponse, feedbackResponse, leaveResponse] =
           await Promise.all([
             api.getAdminPanelOrders(token),
             api.getAdminRequests(token, { page: 1, limit: 100 }),
             api.getHrFeedback(token),
+            leaveRequestsPromise,
           ]);
         setPendingOrders(merchResponse?.data?.pendingOrders || []);
         setReviewedOrders(merchResponse?.data?.reviewedOrders || []);
         setPartRequests(requestsResponse?.data?.items || []);
         setFeedbackItems(feedbackResponse?.data?.items || []);
+        setCanViewLeaveRequests(Boolean(leaveResponse));
+        setLeaveRequests(leaveResponse?.data?.items || []);
       } catch (error) {
         setErrorMessage(
           error instanceof ApiError
@@ -224,6 +240,9 @@ export default function AdminPanel() {
           ["merch", "Merch", pendingOrders.length + reviewedOrders.length],
           ["parts", "Сэлбэг", partRequests.length],
           ["hr", "HR", feedbackItems.length],
+          ...(canViewLeaveRequests
+            ? [["leave", "Чөлөө", leaveRequests.length]]
+            : []),
         ].map(([value, label, count]) => (
           <button
             key={value}
@@ -274,7 +293,7 @@ export default function AdminPanel() {
                 </p>
               )}
             </section>
-          ) : (
+          ) : activeView === "hr" ? (
             <section className="rounded-xl border border-slate-200 bg-white p-4">
               {sortOrders(feedbackItems).length ? (
                 sortOrders(feedbackItems).map((feedback) => (
@@ -286,6 +305,11 @@ export default function AdminPanel() {
                 </p>
               )}
             </section>
+          ) : (
+            <LeaveRequestsReviewPanel
+              className="border-0 p-0 shadow-none"
+              showHeader={false}
+            />
           )}
         </>
       )}

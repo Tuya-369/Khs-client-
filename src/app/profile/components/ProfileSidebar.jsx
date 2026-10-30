@@ -84,6 +84,7 @@ export default function ProfileSidebar({
   setForm,
   setActiveTab,
   activeTab,
+  canReviewLeaveRequests,
   isMobileNavigationOpen,
   setIsMobileNavigationOpen,
 }) {
@@ -91,8 +92,12 @@ export default function ProfileSidebar({
 
   const displayName =
     `${form.lastName} ${form.firstName}`.trim() || "Хэрэглэгч";
+  const canShowNavigationItem = ({ roles, tab }) =>
+    !roles ||
+    roles.includes(user?.role) ||
+    (tab === "dashboard" && canReviewLeaveRequests);
   const mobileNavigationItems = navigationItems.filter(
-    ({ roles }) => !roles || roles.includes(user?.role),
+    canShowNavigationItem,
   );
   const mobileMenuItems = [
     ...mobileNavigationItems,
@@ -251,7 +256,7 @@ export default function ProfileSidebar({
         {/* SIDEBAR NAVIGATION */}
         <nav aria-label="Профайлын үндсэн цэс" className="space-y-1 p-3">
           {navigationItems.map(({ label, icon: Icon, href, tab, roles }) => {
-            if (roles && !roles.includes(user?.role)) return null;
+            if (!canShowNavigationItem({ roles, tab })) return null;
 
             const isActive = tab && activeTab === tab;
 

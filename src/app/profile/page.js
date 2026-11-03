@@ -800,12 +800,14 @@ export default function ProfilePage() {
             {/* DASHBOARD TAB */}
             {activeTab === "dashboard" && (
               <div className="space-y-4">
-                {canReviewLeaveRequests && <LeaveRequestsReviewPanel />}
                 {user?.role === "DRIVER" && <DriverDashboardContent embedded />}
                 {user?.role === "ADMIN_PANEL" && <AdminPanel />}
                 {user?.role === "HR" && <HrDashboardPage embedded />}
                 {user?.role === "ADMIN" && (
                   <AdminDashboard currentUser={user} />
+                )}
+                {canReviewLeaveRequests && user?.role !== "ADMIN_PANEL" && (
+                  <LeaveRequestsReviewPanel />
                 )}
               </div>
             )}

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Check, ImageIcon, X } from "lucide-react";
+import { useEffect, useId, useState } from "react";
+import { Check, ChevronDown, ImageIcon, X } from "lucide-react";
 import { ApiError, api } from "@/lib/api";
 import { getAccessToken } from "@/lib/session";
 
@@ -84,12 +84,15 @@ export default function LeaveRequestsReviewPanel({
   className = "",
   showHeader = true,
 }) {
+  const contentId = useId();
   const [requests, setRequests] = useState([]);
   const [hasViewAccess, setHasViewAccess] = useState(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [updatingId, setUpdatingId] = useState("");
   const [selectedRequest, setSelectedRequest] = useState(null);
+  const [reviewComment, setReviewComment] = useState("");
+  const [isExpanded, setIsExpanded] = useState(true);
 
   useEffect(() => {
     const loadRequests = async () => {
@@ -133,6 +136,12 @@ export default function LeaveRequestsReviewPanel({
     const token = getAccessToken();
     if (!token) return;
 
+    const comment = reviewComment.trim();
+    if (nextStatus === "REJECTED" && !comment) {
+      setErrorMessage("Татгалзах шалтгаанаа бичнэ үү.");
+      return;
+    }
+
     setUpdatingId(id);
     setErrorMessage("");
     try {
@@ -140,6 +149,7 @@ export default function LeaveRequestsReviewPanel({
         token,
         id,
         nextStatus,
+        comment,
       );
       const updated = response?.data;
       setRequests((previous) =>
@@ -150,6 +160,7 @@ export default function LeaveRequestsReviewPanel({
         ),
       );
       setSelectedRequest(null);
+      setReviewComment("");
     } catch (error) {
       setErrorMessage(
         error instanceof ApiError
@@ -179,7 +190,27 @@ export default function LeaveRequestsReviewPanel({
       <div className="flex flex-wrap items-center justify-between gap-2">
         {showHeader && (
           <h2 className="text-base font-bold text-slate-900">
-            Чөлөөний хүсэлтүүд
+            <button
+              type="button"
+              aria-expanded={isExpanded}
+              aria-controls={contentId}
+              aria-label={
+                isExpanded
+                  ? "Чөлөөний хүсэлтүүдийг нуух"
+                  : "Чөлөөний хүсэлтүүдийг харуулах"
+              }
+              onClick={() => setIsExpanded((expanded) => !expanded)}
+              className="inline-flex items-center gap-2 text-left"
+            >
+              Чөлөөний хүсэлтүүд
+              <ChevronDown
+                size={16}
+                aria-hidden="true"
+                className={`text-slate-400 transition-transform ${
+                  isExpanded ? "rotate-180" : ""
+                }`}
+              />
+            </button>
           </h2>
         )}
         {pendingCount > 0 && (
@@ -189,6 +220,7 @@ export default function LeaveRequestsReviewPanel({
         )}
       </div>
 
+      <div id={contentId} hidden={!isExpanded}>
       {loading && (
         <p className="text-xs text-slate-400">Хүсэлтүүд ачаалж байна...</p>
       )}
@@ -208,7 +240,10 @@ export default function LeaveRequestsReviewPanel({
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setSelectedRequest(item)}
+                onClick={() => {
+                  setSelectedRequest(item);
+                  setReviewComment("");
+                }}
                 className="flex w-full flex-col gap-3 rounded-lg border border-slate-200 bg-white p-3 text-left text-xs transition hover:border-slate-300 hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div>
@@ -260,7 +295,10 @@ export default function LeaveRequestsReviewPanel({
           role="dialog"
           aria-modal="true"
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
-          onClick={() => setSelectedRequest(null)}
+          onClick={() => {
+            setSelectedRequest(null);
+            setReviewComment("");
+          }}
         >
           <div
             className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-5 shadow-xl"
@@ -295,7 +333,10 @@ export default function LeaveRequestsReviewPanel({
               </div>
               <button
                 type="button"
-                onClick={() => setSelectedRequest(null)}
+                onClick={() => {
+                  setSelectedRequest(null);
+                  setReviewComment("");
+                }}
                 className="inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
                 aria-label="Хаах"
               >
@@ -351,30 +392,56 @@ export default function LeaveRequestsReviewPanel({
 
             {selectedRequest.status === "PENDING" &&
               selectedRequest.canApprove && (
-              <div className="mt-5 flex items-center gap-2">
-                <button
-                  type="button"
-                  disabled={updatingId === selectedRequest.id}
-                  onClick={() => handleReview(selectedRequest.id, "APPROVED")}
-                  className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-40"
-                >
-                  <Check size={14} />
-                  Зөвшөөрөх
-                </button>
-                <button
-                  type="button"
-                  disabled={updatingId === selectedRequest.id}
-                  onClick={() => handleReview(selectedRequest.id, "REJECTED")}
-                  className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-40"
-                >
-                  <X size={14} />
-                  Татгалзах
-                </button>
+              <div className="mt-5 space-y-3">
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="leaveRequestReviewComment"
+                    className="text-xs font-bold text-slate-800"
+                  >
+                    Шийдвэрийн тайлбар
+                  </label>
+                  <textarea
+                    id="leaveRequestReviewComment"
+                    value={reviewComment}
+                    onChange={(event) => setReviewComment(event.target.value)}
+                    maxLength={1000}
+                    rows={3}
+                    placeholder="Жишээ: Орлох хүн байхгүй."
+                    className="w-full resize-none rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-900 outline-none focus:border-slate-700"
+                  />
+                  <p className="text-[11px] text-slate-500">
+                    Татгалзах үед шалтгаан заавал бичнэ. Тайлбар хүсэлт гаргасан
+                    хүнд notification-оор очно.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={updatingId === selectedRequest.id}
+                    onClick={() => handleReview(selectedRequest.id, "APPROVED")}
+                    className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-40"
+                  >
+                    <Check size={14} />
+                    Зөвшөөрөх
+                  </button>
+                  <button
+                    type="button"
+                    disabled={
+                      updatingId === selectedRequest.id || !reviewComment.trim()
+                    }
+                    onClick={() => handleReview(selectedRequest.id, "REJECTED")}
+                    className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-40"
+                  >
+                    <X size={14} />
+                    Татгалзах
+                  </button>
+                </div>
               </div>
             )}
           </div>
         </div>
       )}
+      </div>
     </section>
   );
 }

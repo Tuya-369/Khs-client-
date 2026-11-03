@@ -424,11 +424,11 @@ export const api = {
   getLeaveRequestReviewAccess: (token) =>
     apiRequest("/api/leave-requests/review-access", { token }),
   getLeaveRequests: (token) => apiRequest("/api/leave-requests", { token }),
-  updateLeaveRequestStatus: (token, id, status) =>
+  updateLeaveRequestStatus: (token, id, status, comment) =>
     apiRequest(`/api/leave-requests/${id}/status`, {
       method: "PATCH",
       token,
-      body: { status },
+      body: { status, ...(comment ? { comment } : {}) },
     }),
 
   getNotifications: (token, limit = 30) =>

@@ -29,6 +29,7 @@ const statusConfig = {
 };
 
 const approvalLevelLabels = {
+  OT: "OT",
   SENIOR_SPECIALIST: "Ахлах мэргэжилтэн",
   UNIT_MANAGER: "Нэгжийн удирдлага",
   HR_DIRECTOR: "Захиргаа, хүний нөөц хариуцсан захирал",
@@ -67,12 +68,21 @@ const addCalendarMonths = (date, months) => {
 
 const getApprovalPolicy = (approvers, durationType, startDate, endDate) => {
   if (durationType === "HOURLY") {
+    if (!startDate) {
+      return { workingDays: null, approvalLabel: "", approvers: [], error: "" };
+    }
+
+    const otApprovers = approvers.filter(
+      ({ approvalLevel }) => approvalLevel === "OT",
+    );
     return {
       workingDays: null,
-      approvalLabel: "Батлах менежер",
-      approvers: approvers.filter(
-        ({ approvalLevel }) => approvalLevel !== "GENERAL_DIRECTOR",
-      ),
+      approvalLabel: otApprovers.length ? "OT" : "Батлах менежер",
+      approvers: otApprovers.length
+        ? otApprovers
+        : approvers.filter(
+            ({ approvalLevel }) => approvalLevel !== "GENERAL_DIRECTOR",
+          ),
       error: "",
     };
   }
@@ -108,6 +118,18 @@ const getApprovalPolicy = (approvers, durationType, startDate, endDate) => {
     };
   }
 
+  const otApprovers = approvers.filter(
+    ({ approvalLevel }) => approvalLevel === "OT",
+  );
+  if (otApprovers.length > 0) {
+    return {
+      workingDays,
+      approvalLabel: "OT",
+      approvers: otApprovers,
+      error: "",
+    };
+  }
+
   const unitManagers = approvers.filter(
     ({ approvalLevel }) => approvalLevel === "UNIT_MANAGER",
   );
@@ -134,7 +156,10 @@ const getApprovalPolicy = (approvers, durationType, startDate, endDate) => {
     const responsibleHr = approvers.filter(
       ({ isResponsibleHr }) => isResponsibleHr,
     );
-    eligibleApprovers = hrDirectors.length > 0 ? hrDirectors : responsibleHr;
+    eligibleApprovers = approvers.filter(
+      ({ approvalLevel, isResponsibleHr }) =>
+        approvalLevel === "HR_DIRECTOR" || isResponsibleHr,
+    );
     approvalLabel =
       hrDirectors.length > 0
         ? approvalLevelLabels.HR_DIRECTOR
@@ -371,53 +396,6 @@ export default function LeaveRequestPage() {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-1.5">
-          <label
-            htmlFor="selectedApproverPhoneNumber"
-            className="text-xs font-bold text-slate-800"
-          >
-            Батлах ажилтан
-            {approvalPolicy.approvalLabel
-              ? ` · ${approvalPolicy.approvalLabel}`
-              : ""}{" "}
-            <span className="text-rose-500">*</span>
-          </label>
-          <select
-            id="selectedApproverPhoneNumber"
-            value={effectiveSelectedApproverPhoneNumber}
-            onChange={(event) =>
-              setSelectedApproverPhoneNumber(event.target.value)
-            }
-            disabled={loading || approvalPolicy.approvers.length === 0}
-            required
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:border-slate-700 disabled:bg-slate-100"
-          >
-            <option value="" disabled>
-              {loading
-                ? "Батлах ажилтны жагсаалт ачаалж байна..."
-                : approvalPolicy.approvers.length === 0
-                  ? "Ажлын огноогоо сонгоно уу"
-                  : "Батлах ажилтнаа сонгоно уу"}
-            </option>
-            {approvalPolicy.approvers.map((approver) => (
-              <option key={approver.phoneNumber} value={approver.phoneNumber}>
-                {approver.displayName || approver.phoneNumber}
-              </option>
-            ))}
-          </select>
-          {approvalPolicy.workingDays !== null && !approvalPolicy.error && (
-            <p className="text-xs text-slate-500">
-              Ажлын {approvalPolicy.workingDays} өдөр. Амралтын өдрүүдийг
-              тооцохгүй.
-            </p>
-          )}
-          {approvalPolicy.error && (
-            <p role="alert" className="text-xs text-rose-600">
-              {approvalPolicy.error}
-            </p>
-          )}
-        </div>
-
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <label
@@ -510,6 +488,53 @@ export default function LeaveRequestPage() {
               )}
             </div>
           </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label
+            htmlFor="selectedApproverPhoneNumber"
+            className="text-xs font-bold text-slate-800"
+          >
+            Батлах ажилтан
+            {approvalPolicy.approvalLabel
+              ? ` · ${approvalPolicy.approvalLabel}`
+              : ""}{" "}
+            <span className="text-rose-500">*</span>
+          </label>
+          <select
+            id="selectedApproverPhoneNumber"
+            value={effectiveSelectedApproverPhoneNumber}
+            onChange={(event) =>
+              setSelectedApproverPhoneNumber(event.target.value)
+            }
+            disabled={loading || approvalPolicy.approvers.length === 0}
+            required
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:border-slate-700 disabled:bg-slate-100"
+          >
+            <option value="" disabled>
+              {loading
+                ? "Батлах ажилтны жагсаалт ачаалж байна..."
+                : approvalPolicy.approvers.length === 0
+                  ? "Ажлын огноогоо сонгоно уу"
+                  : "Батлах ажилтнаа сонгоно уу"}
+            </option>
+            {approvalPolicy.approvers.map((approver) => (
+              <option key={approver.phoneNumber} value={approver.phoneNumber}>
+                {approver.displayName || approver.phoneNumber}
+              </option>
+            ))}
+          </select>
+          {approvalPolicy.workingDays !== null && !approvalPolicy.error && (
+            <p className="text-xs text-slate-500">
+              Ажлын {approvalPolicy.workingDays} өдөр. Амралтын өдрүүдийг
+              тооцохгүй.
+            </p>
+          )}
+          {approvalPolicy.error && (
+            <p role="alert" className="text-xs text-rose-600">
+              {approvalPolicy.error}
+            </p>
+          )}
         </div>
 
         {status.message && (

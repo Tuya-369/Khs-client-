@@ -85,8 +85,12 @@ const branchLabels = {
   BAYAJUULAH: "Баяжуулах",
   PROJECT: "Төсөл",
   OPERATION: "Үйл ажиллагаа",
-  CONTRACTION: "Гэрээт ажил",
 };
+
+const getBranchLabel = (projectName) =>
+  projectName === "CONTRACTION"
+    ? "Хуучин ангилал"
+    : branchLabels[projectName] || projectName;
 
 const formatDate = (date) => {
   if (!date) return "-";
@@ -513,7 +517,7 @@ export default function HrDashboardPage({ embedded = false }) {
                         </span>
                         {item.ProjectName && (
                           <span className="rounded-md bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">
-                            {branchLabels[item.ProjectName] || item.ProjectName}
+                            {getBranchLabel(item.ProjectName)}
                           </span>
                         )}
                       </div>

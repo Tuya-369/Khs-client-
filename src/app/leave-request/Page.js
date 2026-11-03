@@ -31,15 +31,27 @@ const statusConfig = {
 const approvalLevelLabels = {
   OT: "OT",
   SENIOR_SPECIALIST: "Ахлах мэргэжилтэн",
-  UNIT_MANAGER: "Нэгжийн удирдлага",
+  UNIT_MANAGER: "Үйл ажиллагааны менежер",
   HR_DIRECTOR: "Захиргаа, хүний нөөц хариуцсан захирал",
   GENERAL_DIRECTOR: "Ерөнхий захирал",
 };
 
+const approvalPeriodLabels = {
+  "1_3": approvalLevelLabels.SENIOR_SPECIALIST,
+  "4_7": approvalLevelLabels.UNIT_MANAGER,
+  "8_14": approvalLevelLabels.HR_DIRECTOR,
+  "15_PLUS": approvalLevelLabels.GENERAL_DIRECTOR,
+};
+
+const getApprovalPeriod = (workingDays) => {
+  if (workingDays <= 3) return "1_3";
+  if (workingDays <= 7) return "4_7";
+  if (workingDays <= 14) return "8_14";
+  return "15_PLUS";
+};
+
 const getWorkingDayCount = (startDate, endDate) => {
-  const [startYear, startMonth, startDay] = startDate
-    .split("-")
-    .map(Number);
+  const [startYear, startMonth, startDay] = startDate.split("-").map(Number);
   const [endYear, endMonth, endDay] = endDate.split("-").map(Number);
   const start = Date.UTC(startYear, startMonth - 1, startDay);
   const end = Date.UTC(endYear, endMonth - 1, endDay);
@@ -133,10 +145,19 @@ const getApprovalPolicy = (approvers, durationType, startDate, endDate) => {
   const unitManagers = approvers.filter(
     ({ approvalLevel }) => approvalLevel === "UNIT_MANAGER",
   );
+  const hasConfiguredApprovalPeriods = approvers.some(({ approvalPeriods }) =>
+    Array.isArray(approvalPeriods),
+  );
   let eligibleApprovers;
   let approvalLabel;
 
-  if (workingDays <= 3) {
+  if (hasConfiguredApprovalPeriods) {
+    const approvalPeriod = getApprovalPeriod(workingDays);
+    eligibleApprovers = approvers.filter(({ approvalPeriods }) =>
+      approvalPeriods?.includes(approvalPeriod),
+    );
+    approvalLabel = approvalPeriodLabels[approvalPeriod];
+  } else if (workingDays <= 3) {
     const seniorSpecialists = approvers.filter(
       ({ approvalLevel }) => approvalLevel === "SENIOR_SPECIALIST",
     );
@@ -156,10 +177,7 @@ const getApprovalPolicy = (approvers, durationType, startDate, endDate) => {
     const responsibleHr = approvers.filter(
       ({ isResponsibleHr }) => isResponsibleHr,
     );
-    eligibleApprovers = approvers.filter(
-      ({ approvalLevel, isResponsibleHr }) =>
-        approvalLevel === "HR_DIRECTOR" || isResponsibleHr,
-    );
+    eligibleApprovers = hrDirectors.length > 0 ? hrDirectors : responsibleHr;
     approvalLabel =
       hrDirectors.length > 0
         ? approvalLevelLabels.HR_DIRECTOR
@@ -180,7 +198,12 @@ const getApprovalPolicy = (approvers, durationType, startDate, endDate) => {
     };
   }
 
-  return { workingDays, approvalLabel, approvers: eligibleApprovers, error: "" };
+  return {
+    workingDays,
+    approvalLabel,
+    approvers: eligibleApprovers,
+    error: "",
+  };
 };
 
 const formatDate = (date) => {
@@ -223,8 +246,11 @@ export default function LeaveRequestPage() {
 
   const [myRequests, setMyRequests] = useState([]);
   const [approvers, setApprovers] = useState([]);
+  const [hrApprovers, setHrApprovers] = useState([]);
+  const [requiresHrSelection, setRequiresHrSelection] = useState(false);
   const [selectedApproverPhoneNumber, setSelectedApproverPhoneNumber] =
     useState("");
+  const [selectedHrPhoneNumber, setSelectedHrPhoneNumber] = useState("");
 
   const approvalPolicy = useMemo(
     () => getApprovalPolicy(approvers, durationType, startDate, endDate),
@@ -236,6 +262,13 @@ export default function LeaveRequestPage() {
     ? selectedApproverPhoneNumber
     : approvalPolicy.approvers.length === 1
       ? approvalPolicy.approvers[0].phoneNumber
+      : "";
+  const effectiveSelectedHrPhoneNumber = hrApprovers.some(
+    (approver) => approver.phoneNumber === selectedHrPhoneNumber,
+  )
+    ? selectedHrPhoneNumber
+    : hrApprovers.length === 1
+      ? hrApprovers[0].phoneNumber
       : "";
 
   const loadData = useCallback(async () => {
@@ -254,9 +287,20 @@ export default function LeaveRequestPage() {
       ]);
       setMyRequests(mineResponse?.data?.items || []);
       const nextApprovers = approversResponse?.data?.items || [];
+      const nextHrApprovers = approversResponse?.data?.hrItems || [];
       setApprovers(nextApprovers);
+      setHrApprovers(nextHrApprovers);
+      setRequiresHrSelection(
+        approversResponse?.data?.requiresHrSelection ??
+          nextHrApprovers.length > 1,
+      );
       setSelectedApproverPhoneNumber((current) =>
         nextApprovers.some((approver) => approver.phoneNumber === current)
+          ? current
+          : "",
+      );
+      setSelectedHrPhoneNumber((current) =>
+        nextHrApprovers.some((approver) => approver.phoneNumber === current)
           ? current
           : "",
       );
@@ -328,6 +372,13 @@ export default function LeaveRequestPage() {
       });
       return;
     }
+    if (requiresHrSelection && !effectiveSelectedHrPhoneNumber) {
+      setStatus({
+        type: "error",
+        message: "ХН ажилтан сонгоно уу.",
+      });
+      return;
+    }
 
     setIsSubmitting(true);
     setStatus({ type: null, message: "" });
@@ -350,6 +401,7 @@ export default function LeaveRequestPage() {
         reason: reason.trim(),
         proofImage,
         selectedApproverPhoneNumber: effectiveSelectedApproverPhoneNumber,
+        selectedHrPhoneNumber: effectiveSelectedHrPhoneNumber,
       });
 
       setStatus({
@@ -537,6 +589,48 @@ export default function LeaveRequestPage() {
           )}
         </div>
 
+        {hrApprovers.length > 0 && (
+          <div className="space-y-1.5">
+            <label
+              htmlFor="selectedHrPhoneNumber"
+              className="text-xs font-bold text-slate-800"
+            >
+              ХН хариуцагч{" "}
+              {requiresHrSelection && (
+                <span className="text-rose-500">*</span>
+              )}
+            </label>
+            {requiresHrSelection ? (
+              <select
+                id="selectedHrPhoneNumber"
+                value={effectiveSelectedHrPhoneNumber}
+                onChange={(event) =>
+                  setSelectedHrPhoneNumber(event.target.value)
+                }
+                disabled={loading}
+                required
+                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:border-slate-700 disabled:bg-slate-100"
+              >
+                <option value="" disabled>
+                  ХН ажилтан сонгоно уу
+                </option>
+                {hrApprovers.map((approver) => (
+                  <option
+                    key={approver.phoneNumber}
+                    value={approver.phoneNumber}
+                  >
+                    {approver.displayName || approver.phoneNumber}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+                {hrApprovers[0].displayName || hrApprovers[0].phoneNumber}
+              </p>
+            )}
+          </div>
+        )}
+
         {status.message && (
           <div
             role="status"
@@ -624,6 +718,7 @@ export default function LeaveRequestPage() {
             !reason.trim() ||
             !proofImage ||
             !effectiveSelectedApproverPhoneNumber ||
+            (requiresHrSelection && !effectiveSelectedHrPhoneNumber) ||
             approvalPolicy.approvers.length === 0 ||
             Boolean(approvalPolicy.error)
           }

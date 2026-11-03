@@ -41,9 +41,13 @@ const branchLabels = {
   BAYAJUULAH: "Баяжуулах",
   PROJECT: "Төсөл",
   OPERATION: "Үйл ажиллагаа",
-  CONTRACTION: "Гэрээт ажил",
   OTHER: "Бусад",
 };
+
+const getBranchLabel = (projectName) =>
+  projectName === "CONTRACTION"
+    ? "Хуучин ангилал"
+    : branchLabels[projectName] || projectName;
 
 const formatDateTime = (date) => {
   if (!date) return "-";
@@ -213,13 +217,18 @@ export default function LeaveRequestsReviewPanel({
                     {roleLabels[item.role] || item.role}
                   </p>
                   <p className="mt-0.5 text-[11px] text-slate-500">
-                    {branchLabels[item.ProjectName] || item.ProjectName}
+                    {getBranchLabel(item.ProjectName)}
                     {item.sapId ? ` · SAP: ${item.sapId}` : ""}
                     {item.phoneNumber ? ` · ${item.phoneNumber}` : ""}
                   </p>
                   {item.selectedApproverName && (
                     <p className="mt-1 text-[11px] text-slate-500">
                       Батлах менежер: {item.selectedApproverName}
+                    </p>
+                  )}
+                  {item.selectedHrName && (
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      ХН хариуцагч: {item.selectedHrName}
                     </p>
                   )}
                   <p className="mt-1 text-slate-600">
@@ -264,8 +273,7 @@ export default function LeaveRequestsReviewPanel({
                 </h3>
                 <p className="mt-0.5 text-xs text-slate-500">
                   {roleLabels[selectedRequest.role] || selectedRequest.role} ·{" "}
-                  {branchLabels[selectedRequest.ProjectName] ||
-                    selectedRequest.ProjectName}
+                  {getBranchLabel(selectedRequest.ProjectName)}
                 </p>
                 <p className="mt-0.5 text-xs text-slate-500">
                   {selectedRequest.sapId ? `SAP: ${selectedRequest.sapId}` : ""}
@@ -277,6 +285,11 @@ export default function LeaveRequestsReviewPanel({
                 {selectedRequest.selectedApproverName && (
                   <p className="mt-0.5 text-xs text-slate-500">
                     Батлах менежер: {selectedRequest.selectedApproverName}
+                  </p>
+                )}
+                {selectedRequest.selectedHrName && (
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    ХН хариуцагч: {selectedRequest.selectedHrName}
                   </p>
                 )}
               </div>

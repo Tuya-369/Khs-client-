@@ -403,6 +403,9 @@ export const api = {
       "selectedApproverPhoneNumber",
       data.selectedApproverPhoneNumber,
     );
+    if (data.selectedHrPhoneNumber) {
+      formData.append("selectedHrPhoneNumber", data.selectedHrPhoneNumber);
+    }
     if (data.proofImage instanceof File) {
       formData.append("proofImage", data.proofImage);
     }

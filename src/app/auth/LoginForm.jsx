@@ -6,6 +6,10 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { saveSession } from "@/lib/session";
+import Loader from "@/components/common/Loader";
+import { Lottie } from "lottie-react";
+
+const ENTER_ANIMATION_SRC = "/animations/Robot%20says%20hello.json";
 
 function ForgotPasswordForm({ onBack }) {
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -214,6 +218,7 @@ export default function LoginForm() {
   const [otpCode, setOtpCode] = useState("");
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isEntering, setIsEntering] = useState(false);
 
   useEffect(() => {
     if (!isOtpSent || secondsLeft <= 0) return;
@@ -282,8 +287,10 @@ export default function LoginForm() {
       }
 
       saveSession(accessToken, user);
+      setIsEntering(true);
       router.push("/");
     } catch (error) {
+      setIsEntering(false);
       if (error instanceof ApiError) {
         setErrorMessage(error.message);
       } else {
@@ -296,16 +303,19 @@ export default function LoginForm() {
     }
   };
 
+  if (isEntering) {
+    return <Loader src={ENTER_ANIMATION_SRC} fullScreen={true} />;
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center p-4 sm:p-6 md:p-8">
       <div className="grid w-full max-w-4xl grid-cols-1 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-xl md:grid-cols-2">
-        <div className="relative hidden bg-neutral-900 md:block">
-          <Image
-            src="/Login.png"
-            alt="Нэвтрэх"
-            fill
-            sizes="(max-width: 768px) 100vw, 50vw"
-            className="absolute inset-0 h-full w-full object-cover opacity-85"
+        <div className="relative hidden bg-[#729fd0] md:block">
+          <Lottie
+            src={ENTER_ANIMATION_SRC}
+            loop
+            autoplay
+            className="absolute inset-0 h-full w-full"
           />
 
           <div className="absolute inset-0 flex flex-col justify-end p-8 bg-linear-to-t from-neutral-950/90 via-neutral-950/20 to-transparent">

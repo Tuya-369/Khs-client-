@@ -428,7 +428,9 @@ export default function LeaveRequestsReviewPanel({
                         className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-40"
                       >
                         <Check size={14} />
-                        Зөвшөөрөх
+                        {selectedRequest.isFinalStage
+                          ? "Батлах"
+                          : "Зөвшөөрөх"}
                       </button>
                       <button
                         type="button"

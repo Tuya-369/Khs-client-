@@ -24,7 +24,9 @@ export default function RootLayout({ children }) {
       <body className="min-h-full flex flex-col">
         <CartProvider>
           <ProfileProvider>
-            <AppShell>{children}</AppShell>
+            <AppShell>
+              {children}
+            </AppShell>
           </ProfileProvider>
         </CartProvider>
       </body>

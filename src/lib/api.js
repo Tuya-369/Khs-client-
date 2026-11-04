@@ -399,10 +399,18 @@ export const api = {
     formData.append("startDate", data.startDate);
     formData.append("endDate", data.endDate);
     formData.append("reason", data.reason);
-    formData.append(
-      "selectedApproverPhoneNumber",
-      data.selectedApproverPhoneNumber,
-    );
+    if (data.selectedApproverPhoneNumber) {
+      formData.append(
+        "selectedApproverPhoneNumber",
+        data.selectedApproverPhoneNumber,
+      );
+    }
+    if (data.selectedManagerPhoneNumber) {
+      formData.append(
+        "selectedManagerPhoneNumber",
+        data.selectedManagerPhoneNumber,
+      );
+    }
     if (data.selectedHrPhoneNumber) {
       formData.append("selectedHrPhoneNumber", data.selectedHrPhoneNumber);
     }

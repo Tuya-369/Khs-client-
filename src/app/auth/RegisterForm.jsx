@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
+import { Lottie } from "lottie-react";
 
 export default function RegisterForm() {
   const router = useRouter();
@@ -128,15 +129,15 @@ export default function RegisterForm() {
   return (
     <div className="flex min-h-screen items-center justify-center p-4 sm:p-6 md:p-8">
       <div className="grid w-full max-w-4xl grid-cols-1 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-xl md:grid-cols-2">
-        <div className="relative hidden bg-neutral-900 md:block">
-          <Image
-            src="/Login.png"
-            className="absolute inset-0 h-full w-full object-cover opacity-85"
-            alt="Бүртгэл"
-            fill
-            sizes="(max-width: 768px) 100vw, 50vw"
+        <div className="relative hidden bg-[#729fd0] md:block">
+          <Lottie
+            src="/animations/Robot%20says%20hello.json"
+            loop
+            autoplay
+            className="absolute inset-0 h-full w-full"
           />
           <div className="absolute inset-0 bg-linear-to-t from-neutral-950/90 via-neutral-950/20 to-transparent flex flex-col justify-end p-8">
+
             <p className="mt-2 text-xs text-neutral-300 leading-relaxed">
               <span className="font-semibold text-yellow-500 text-lg">
                 Хаанзаа Сервис ХХК

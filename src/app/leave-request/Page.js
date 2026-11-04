@@ -7,6 +7,7 @@ import { ApiError, api } from "@/lib/api";
 import { getAccessToken } from "@/lib/session";
 
 const MAX_REASON_LENGTH = 1000;
+const UB_HR_PHONE_NUMBER = "99009051";
 
 const durationTypeLabels = {
   DAILY: "Өдрөөр",
@@ -206,6 +207,152 @@ const getApprovalPolicy = (approvers, durationType, startDate, endDate) => {
   };
 };
 
+const getStagedApprovalPolicy = ({
+  approverData,
+  hrApprovers,
+  durationType,
+  legacyPolicy,
+}) => {
+  if (!approverData?.stagedRouting) return null;
+  const { workingDays } = legacyPolicy;
+
+  const base = {
+    workingDays,
+    error: "",
+    approvalLabel: "",
+    approvers: [],
+    managerOptions: [],
+    showManager: false,
+    showHr: hrApprovers.length > 0,
+    primaryIsManager: false,
+    noApproverNeeded: false,
+    note: "",
+    isStaged: true,
+  };
+
+  if (approverData.isManagerOrSeniorRequester) {
+    const finalApprovers = approverData.finalItems || [];
+    const dateValidationError = [
+      "Эхлэх огноо дуусах огнооноос хойш байж болохгүй.",
+      "Цалингүй чөлөөний хугацаа 3 сараас хэтэрч болохгүй.",
+      "Чөлөөний хугацаанд ажлын өдөр байх шаардлагатай.",
+    ].includes(legacyPolicy.error)
+      ? legacyPolicy.error
+      : "";
+    return {
+      ...base,
+      approvalLabel: "Эцсийн батлагч",
+      approvers: finalApprovers,
+      showHr: true,
+      showHrAlways: true,
+      fixedHrPhoneNumber:
+        hrApprovers.length === 1 ? hrApprovers[0].phoneNumber : undefined,
+      isManagerOrSeniorRequester: true,
+      error:
+        dateValidationError ||
+        (hrApprovers.length
+          ? finalApprovers.length
+            ? ""
+            : "Эцсийн батлагч бүртгэгдээгүй байна."
+          : "Тухайн төслийн ХН хариуцагч бүртгэгдээгүй байна. Хүний нөөцтэй холбогдоно уу."),
+    };
+  }
+
+  if (durationType !== "DAILY") return null;
+  if (!workingDays || workingDays > 14) return null;
+
+  if (approverData.isHrRequester) {
+    return {
+      ...base,
+      showHr: false,
+      noApproverNeeded: true,
+      note: "Таны хүсэлтийг Ерөнхий захирал Bilguun Ganbold батална.",
+    };
+  }
+
+  if (approverData.isUbHrDepartment) {
+    const hrDeptApprovers = approverData.finalItems || [];
+    return {
+      ...base,
+      showHr: false,
+      approvalLabel: "Эцсийн батлагч",
+      approvers: hrDeptApprovers,
+      error: hrDeptApprovers.length
+        ? ""
+        : "Эцсийн батлагч бүртгэгдээгүй байна. Хүний нөөцтэй холбогдоно уу.",
+      note: `Эхлээд Erdenezul Batdorj хянана. Дараа нь ${hrDeptApprovers[0]?.displayName || "Bilguun Ganbold"} батална.`,
+    };
+  }
+
+  if (approverData.isUbDirectApproval) {
+    const directApprovers = approverData.finalItems || [];
+    return {
+      ...base,
+      showHr: true,
+      fixedHrPhoneNumber: UB_HR_PHONE_NUMBER,
+      approvalLabel: "Эцсийн батлагч",
+      approvers: directApprovers,
+      error: directApprovers.length
+        ? ""
+        : "Батлагч бүртгэгдээгүй байна. Хүний нөөцтэй холбогдоно уу.",
+    };
+  }
+
+  if (approverData.isConstructionDepartment) {
+    const finalApprovers = approverData.finalItems || [];
+    const hrName =
+      hrApprovers.find(({ phoneNumber }) => phoneNumber === UB_HR_PHONE_NUMBER)
+        ?.displayName || "Хүний нөөц";
+    return {
+      ...base,
+      showHr: false,
+      approvalLabel: "Эцсийн батлагч",
+      approvers: finalApprovers,
+      error: finalApprovers.length
+        ? ""
+        : "Барилгын хэлтсийн эцсийн батлагч бүртгэгдээгүй байна.",
+      note: `Эхлээд ${hrName} хянана. Дараа нь ${finalApprovers[0]?.displayName || "Bayarmunkh Tsend-Ayush"} батална.`,
+    };
+  }
+
+  const seniors = approverData.seniorItems || [];
+  const managers = approverData.managerItems || [];
+
+  if (workingDays <= 3) {
+    let stageError = "";
+    if (seniors.length === 0) {
+      stageError =
+        "Ахлах мэргэжилтэн бүртгэгдээгүй байна. Хүний нөөцтэй холбогдоно уу.";
+    } else if (managers.length === 0) {
+      stageError =
+        "Менежер бүртгэгдээгүй байна. Хүний нөөцтэй холбогдоно уу.";
+    }
+    return {
+      ...base,
+      approvalLabel: approvalLevelLabels.SENIOR_SPECIALIST,
+      approvers: seniors,
+      managerOptions: managers,
+      showManager: true,
+      error: stageError,
+    };
+  }
+
+  return {
+    ...base,
+    approvalLabel: approvalLevelLabels.UNIT_MANAGER,
+    approvers: managers,
+    primaryIsManager: true,
+    error:
+      managers.length === 0
+        ? "Менежер бүртгэгдээгүй байна. Хүний нөөцтэй холбогдоно уу."
+        : "",
+    note:
+      workingDays > 7
+        ? "Хүний нөөц хянасны дараа эцсийн батлагч Bilguun Ganbold батална."
+        : "",
+  };
+};
+
 const formatDate = (date) => {
   if (!date) return "-";
   return new Intl.DateTimeFormat("mn-MN", {
@@ -251,11 +398,34 @@ export default function LeaveRequestPage() {
   const [selectedApproverPhoneNumber, setSelectedApproverPhoneNumber] =
     useState("");
   const [selectedHrPhoneNumber, setSelectedHrPhoneNumber] = useState("");
+  const [selectedManagerPhoneNumber, setSelectedManagerPhoneNumber] =
+    useState("");
+  const [approverData, setApproverData] = useState(null);
 
-  const approvalPolicy = useMemo(
+  const legacyApprovalPolicy = useMemo(
     () => getApprovalPolicy(approvers, durationType, startDate, endDate),
     [approvers, durationType, startDate, endDate],
   );
+  const approvalPolicy = useMemo(
+    () =>
+      getStagedApprovalPolicy({
+        approverData,
+        hrApprovers,
+        durationType,
+        legacyPolicy: legacyApprovalPolicy,
+      }) ?? legacyApprovalPolicy,
+    [approverData, hrApprovers, durationType, legacyApprovalPolicy],
+  );
+  const managerOptions = approvalPolicy.managerOptions ?? [];
+  const showHrField =
+    Boolean(approvalPolicy.fixedHrPhoneNumber) ||
+    Boolean(approvalPolicy.showHrAlways) ||
+    ((approvalPolicy.isStaged ? approvalPolicy.showHr : hrApprovers.length > 0) &&
+      requiresHrSelection);
+  const hrSelectionRequired =
+    showHrField &&
+    requiresHrSelection &&
+    !approvalPolicy.fixedHrPhoneNumber;
   const effectiveSelectedApproverPhoneNumber = approvalPolicy.approvers.some(
     (approver) => approver.phoneNumber === selectedApproverPhoneNumber,
   )
@@ -263,13 +433,22 @@ export default function LeaveRequestPage() {
     : approvalPolicy.approvers.length === 1
       ? approvalPolicy.approvers[0].phoneNumber
       : "";
-  const effectiveSelectedHrPhoneNumber = hrApprovers.some(
-    (approver) => approver.phoneNumber === selectedHrPhoneNumber,
+  const effectiveSelectedManagerPhoneNumber = managerOptions.some(
+    (manager) => manager.phoneNumber === selectedManagerPhoneNumber,
   )
-    ? selectedHrPhoneNumber
-    : hrApprovers.length === 1
-      ? hrApprovers[0].phoneNumber
+    ? selectedManagerPhoneNumber
+    : managerOptions.length === 1
+      ? managerOptions[0].phoneNumber
       : "";
+  const effectiveSelectedHrPhoneNumber = approvalPolicy.fixedHrPhoneNumber
+    ? approvalPolicy.fixedHrPhoneNumber
+    : hrApprovers.some(
+          (approver) => approver.phoneNumber === selectedHrPhoneNumber,
+        )
+      ? selectedHrPhoneNumber
+      : hrApprovers.length === 1
+        ? hrApprovers[0].phoneNumber
+        : "";
 
   const loadData = useCallback(async () => {
     const token = getAccessToken();
@@ -288,6 +467,7 @@ export default function LeaveRequestPage() {
       setMyRequests(mineResponse?.data?.items || []);
       const nextApprovers = approversResponse?.data?.items || [];
       const nextHrApprovers = approversResponse?.data?.hrItems || [];
+      setApproverData(approversResponse?.data || null);
       setApprovers(nextApprovers);
       setHrApprovers(nextHrApprovers);
       setRequiresHrSelection(
@@ -351,13 +531,6 @@ export default function LeaveRequestPage() {
       return;
     }
 
-    if (!proofImage) {
-      setStatus({
-        type: "error",
-        message: "Баталгаажуулах зураг оруулна уу.",
-      });
-      return;
-    }
     if (approvalPolicy.error) {
       setStatus({
         type: "error",
@@ -365,14 +538,24 @@ export default function LeaveRequestPage() {
       });
       return;
     }
-    if (!effectiveSelectedApproverPhoneNumber) {
+    if (
+      !approvalPolicy.noApproverNeeded &&
+      !effectiveSelectedApproverPhoneNumber
+    ) {
       setStatus({
         type: "error",
         message: "Батлах ажилтнаа сонгоно уу.",
       });
       return;
     }
-    if (requiresHrSelection && !effectiveSelectedHrPhoneNumber) {
+    if (approvalPolicy.showManager && !effectiveSelectedManagerPhoneNumber) {
+      setStatus({
+        type: "error",
+        message: "Менежерээ сонгоно уу.",
+      });
+      return;
+    }
+    if (hrSelectionRequired && !effectiveSelectedHrPhoneNumber) {
       setStatus({
         type: "error",
         message: "ХН ажилтан сонгоно уу.",
@@ -400,7 +583,14 @@ export default function LeaveRequestPage() {
         endDate: endDateTime,
         reason: reason.trim(),
         proofImage,
-        selectedApproverPhoneNumber: effectiveSelectedApproverPhoneNumber,
+        selectedApproverPhoneNumber: approvalPolicy.noApproverNeeded
+          ? ""
+          : effectiveSelectedApproverPhoneNumber,
+        selectedManagerPhoneNumber: approvalPolicy.showManager
+          ? effectiveSelectedManagerPhoneNumber
+          : approvalPolicy.primaryIsManager
+            ? effectiveSelectedApproverPhoneNumber
+            : "",
         selectedHrPhoneNumber: effectiveSelectedHrPhoneNumber,
       });
 
@@ -538,6 +728,7 @@ export default function LeaveRequestPage() {
           </div>
         </div>
 
+        {!approvalPolicy.noApproverNeeded && (
         <div className="space-y-1.5">
           <label
             htmlFor="selectedApproverPhoneNumber"
@@ -579,44 +770,73 @@ export default function LeaveRequestPage() {
             </p>
           )}
         </div>
+        )}
 
-        {hrApprovers.length > 0 && (
+        {approvalPolicy.showManager && (
+          <div className="space-y-1.5">
+            <label
+              htmlFor="selectedManagerPhoneNumber"
+              className="text-xs font-bold text-slate-800"
+            >
+              Менежер · {approvalLevelLabels.UNIT_MANAGER}{" "}
+              <span className="text-rose-500">*</span>
+            </label>
+            <select
+              id="selectedManagerPhoneNumber"
+              value={effectiveSelectedManagerPhoneNumber}
+              onChange={(event) =>
+                setSelectedManagerPhoneNumber(event.target.value)
+              }
+              disabled={loading}
+              required
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:border-slate-700 disabled:bg-slate-100"
+            >
+              <option value="" disabled>
+                Менежераа сонгоно уу
+              </option>
+              {managerOptions.map((manager) => (
+                <option key={manager.phoneNumber} value={manager.phoneNumber}>
+                  {manager.displayName || manager.phoneNumber}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {approvalPolicy.note && (
+          <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+            {approvalPolicy.note}
+          </p>
+        )}
+
+        {showHrField && (
           <div className="space-y-1.5">
             <label
               htmlFor="selectedHrPhoneNumber"
               className="text-xs font-bold text-slate-800"
             >
               Хүний нөөц{" "}
-              {requiresHrSelection && <span className="text-rose-500">*</span>}
+              {hrSelectionRequired && <span className="text-rose-500">*</span>}
             </label>
-            {requiresHrSelection ? (
-              <select
-                id="selectedHrPhoneNumber"
-                value={effectiveSelectedHrPhoneNumber}
-                onChange={(event) =>
-                  setSelectedHrPhoneNumber(event.target.value)
-                }
-                disabled={loading}
-                required
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:border-slate-700 disabled:bg-slate-100"
-              >
-                <option value="" disabled>
-                  ХН ажилтан сонгоно уу
-                </option>
-                {hrApprovers.map((approver) => (
-                  <option
-                    key={approver.phoneNumber}
-                    value={approver.phoneNumber}
-                  >
-                    {approver.displayName || approver.phoneNumber}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
-                {hrApprovers[0].displayName || hrApprovers[0].phoneNumber}
-              </p>
-            )}
+            <select
+              id="selectedHrPhoneNumber"
+              value={effectiveSelectedHrPhoneNumber}
+              onChange={(event) =>
+                setSelectedHrPhoneNumber(event.target.value)
+              }
+              disabled={loading || Boolean(approvalPolicy.fixedHrPhoneNumber)}
+              required={hrSelectionRequired}
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 outline-none focus:border-slate-700 disabled:bg-slate-100"
+            >
+            <option value="" disabled>
+              ХН ажилтан сонгоно уу
+            </option>
+            {hrApprovers.map((approver) => (
+              <option key={approver.phoneNumber} value={approver.phoneNumber}>
+                {approver.displayName || approver.phoneNumber}
+              </option>
+            ))}
+            </select>
           </div>
         )}
 
@@ -660,7 +880,9 @@ export default function LeaveRequestPage() {
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-slate-800">
             Баталгаажуулах зураг / бичиг баримт{" "}
-            <span className="text-rose-500">*</span>
+            <span className="text-xs font-normal text-slate-500">
+              (заавал биш)
+            </span>
           </label>
           {proofImagePreview ? (
             <div className="relative w-fit .max-w-[10rem] overflow-hidden rounded-lg border border-slate-200">
@@ -705,10 +927,12 @@ export default function LeaveRequestPage() {
             !startDate ||
             !endDate ||
             !reason.trim() ||
-            !proofImage ||
-            !effectiveSelectedApproverPhoneNumber ||
-            (requiresHrSelection && !effectiveSelectedHrPhoneNumber) ||
-            approvalPolicy.approvers.length === 0 ||
+            (!approvalPolicy.noApproverNeeded &&
+              !effectiveSelectedApproverPhoneNumber) ||
+            (approvalPolicy.showManager && !effectiveSelectedManagerPhoneNumber) ||
+            (hrSelectionRequired && !effectiveSelectedHrPhoneNumber) ||
+            (!approvalPolicy.noApproverNeeded &&
+              approvalPolicy.approvers.length === 0) ||
             Boolean(approvalPolicy.error)
           }
           className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 py-3 text-xs font-bold text-white transition hover:bg-slate-800 disabled:opacity-40"

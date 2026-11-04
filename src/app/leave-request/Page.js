@@ -572,12 +572,7 @@ export default function LeaveRequestPage() {
               </option>
             ))}
           </select>
-          {approvalPolicy.workingDays !== null && !approvalPolicy.error && (
-            <p className="text-xs text-slate-500">
-              Ажлын {approvalPolicy.workingDays} өдөр. Амралтын өдрүүдийг
-              тооцохгүй.
-            </p>
-          )}
+
           {approvalPolicy.error && (
             <p role="alert" className="text-xs text-rose-600">
               {approvalPolicy.error}

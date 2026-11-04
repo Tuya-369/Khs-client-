@@ -221,226 +221,235 @@ export default function LeaveRequestsReviewPanel({
       </div>
 
       <div id={contentId} hidden={!isExpanded}>
-      {loading && (
-        <p className="text-xs text-slate-400">Хүсэлтүүд ачаалж байна...</p>
-      )}
-      {errorMessage && (
-        <p className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
-          {errorMessage}
-        </p>
-      )}
-      {!loading && !errorMessage && (
-        <div className="space-y-2">
-          {sorted.length === 0 ? (
-            <p className="py-4 text-center text-xs text-slate-400">
-              Хүсэлт байхгүй байна.
-            </p>
-          ) : (
-            sorted.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => {
-                  setSelectedRequest(item);
-                  setReviewComment("");
-                }}
-                className="flex w-full flex-col gap-3 rounded-lg border border-slate-200 bg-white p-3 text-left text-xs transition hover:border-slate-300 hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div>
-                  <p className="font-semibold text-slate-800">
-                    {item.lastName} {item.firstName} ·{" "}
-                    {roleLabels[item.role] || item.role}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-slate-500">
-                    {getBranchLabel(item.ProjectName)}
-                    {item.sapId ? ` · SAP: ${item.sapId}` : ""}
-                    {item.phoneNumber ? ` · ${item.phoneNumber}` : ""}
-                  </p>
-                  {item.selectedApproverName && (
-                    <p className="mt-1 text-[11px] text-slate-500">
-                      Батлах менежер: {item.selectedApproverName}
-                    </p>
-                  )}
-                  {item.selectedHrName && (
-                    <p className="mt-1 text-[11px] text-slate-500">
-                      ХН хариуцагч: {item.selectedHrName}
-                    </p>
-                  )}
-                  <p className="mt-1 text-slate-600">
-                    {durationTypeLabels[item.durationType] || "Өдрөөр"} ·{" "}
-                    {formatLeaveDuration(item)}
-                  </p>
-                  <p className="mt-1 text-[11px] text-slate-400">
-                    Илгээсэн: {formatDateTime(item.createdAt)}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {item.proofImageUrl && (
-                    <ImageIcon size={14} className="text-slate-400" />
-                  )}
-                  <span
-                    className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${statusConfig[item.status]?.className}`}
-                  >
-                    {statusConfig[item.status]?.label}
-                  </span>
-                </div>
-              </button>
-            ))
-          )}
-        </div>
-      )}
-
-      {selectedRequest && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
-          onClick={() => {
-            setSelectedRequest(null);
-            setReviewComment("");
-          }}
-        >
-          <div
-            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-5 shadow-xl"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h3 className="text-sm font-bold text-slate-900">
-                  {selectedRequest.lastName} {selectedRequest.firstName}
-                </h3>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  {roleLabels[selectedRequest.role] || selectedRequest.role} ·{" "}
-                  {getBranchLabel(selectedRequest.ProjectName)}
-                </p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  {selectedRequest.sapId ? `SAP: ${selectedRequest.sapId}` : ""}
-                  {selectedRequest.sapId && selectedRequest.phoneNumber
-                    ? " · "
-                    : ""}
-                  {selectedRequest.phoneNumber || ""}
-                </p>
-                {selectedRequest.selectedApproverName && (
-                  <p className="mt-0.5 text-xs text-slate-500">
-                    Батлах менежер: {selectedRequest.selectedApproverName}
-                  </p>
-                )}
-                {selectedRequest.selectedHrName && (
-                  <p className="mt-0.5 text-xs text-slate-500">
-                    ХН хариуцагч: {selectedRequest.selectedHrName}
-                  </p>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedRequest(null);
-                  setReviewComment("");
-                }}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-                aria-label="Хаах"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            <div className="mt-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-slate-700">
-                  {durationTypeLabels[selectedRequest.durationType] ||
-                    "Өдрөөр"}{" "}
-                  · {formatLeaveDuration(selectedRequest)}
-                </span>
-                <span
-                  className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${statusConfig[selectedRequest.status]?.className}`}
-                >
-                  {statusConfig[selectedRequest.status]?.label}
-                </span>
-              </div>
-
-              <p className="text-[11px] text-slate-400">
-                Илгээсэн: {formatDateTime(selectedRequest.createdAt)}
+        {loading && (
+          <p className="text-xs text-slate-400">Хүсэлтүүд ачаалж байна...</p>
+        )}
+        {errorMessage && (
+          <p className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
+            {errorMessage}
+          </p>
+        )}
+        {!loading && !errorMessage && (
+          <div className="space-y-2">
+            {sorted.length === 0 ? (
+              <p className="py-4 text-center text-xs text-slate-400">
+                Хүсэлт байхгүй байна.
               </p>
-
-              <div>
-                <p className="text-xs font-bold text-slate-800">Шалтгаан</p>
-                <p className="mt-1 text-xs leading-5 text-slate-600">
-                  {selectedRequest.reason}
-                </p>
-              </div>
-
-              {selectedRequest.proofImageUrl && (
-                <div>
-                  <p className="text-xs font-bold text-slate-800">
-                    Баталгаажуулах зураг
-                  </p>
-                  <a
-                    href={selectedRequest.proofImageUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-1.5 block w-fit .max-w-[12rem]"
-                  >
-                    <img
-                      src={selectedRequest.proofImageUrl}
-                      alt="Баталгаажуулах зураг"
-                      className="max-h-40 w-auto max-w-full rounded-lg border border-slate-200 object-contain"
-                    />
-                  </a>
-                </div>
-              )}
-            </div>
-
-            {selectedRequest.status === "PENDING" &&
-              selectedRequest.canApprove && (
-              <div className="mt-5 space-y-3">
-                <div className="space-y-1.5">
-                  <label
-                    htmlFor="leaveRequestReviewComment"
-                    className="text-xs font-bold text-slate-800"
-                  >
-                    Шийдвэрийн тайлбар
-                  </label>
-                  <textarea
-                    id="leaveRequestReviewComment"
-                    value={reviewComment}
-                    onChange={(event) => setReviewComment(event.target.value)}
-                    maxLength={1000}
-                    rows={3}
-                    placeholder="Жишээ: Орлох хүн байхгүй."
-                    className="w-full resize-none rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-900 outline-none focus:border-slate-700"
-                  />
-                  <p className="text-[11px] text-slate-500">
-                    Татгалзах үед шалтгаан заавал бичнэ. Тайлбар хүсэлт гаргасан
-                    хүнд notification-оор очно.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    disabled={updatingId === selectedRequest.id}
-                    onClick={() => handleReview(selectedRequest.id, "APPROVED")}
-                    className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-40"
-                  >
-                    <Check size={14} />
-                    Зөвшөөрөх
-                  </button>
-                  <button
-                    type="button"
-                    disabled={
-                      updatingId === selectedRequest.id || !reviewComment.trim()
-                    }
-                    onClick={() => handleReview(selectedRequest.id, "REJECTED")}
-                    className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-40"
-                  >
-                    <X size={14} />
-                    Татгалзах
-                  </button>
-                </div>
-              </div>
+            ) : (
+              sorted.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedRequest(item);
+                    setReviewComment("");
+                  }}
+                  className="flex w-full flex-col gap-3 rounded-lg border border-slate-200 bg-white p-3 text-left text-xs transition hover:border-slate-300 hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div>
+                    <p className="font-semibold text-slate-800">
+                      {item.lastName} {item.firstName} ·{" "}
+                      {roleLabels[item.role] || item.role}
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-slate-500">
+                      {getBranchLabel(item.ProjectName)}
+                      {item.sapId ? ` · SAP: ${item.sapId}` : ""}
+                      {item.phoneNumber ? ` · ${item.phoneNumber}` : ""}
+                    </p>
+                    {item.selectedApproverName && (
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        Батлах менежер: {item.selectedApproverName}
+                      </p>
+                    )}
+                    {item.selectedHrName && (
+                      <p className="mt-1 text-[11px] text-slate-500">
+                        Хүний нөөц: {item.selectedHrName}
+                      </p>
+                    )}
+                    <p className="mt-1 text-slate-600">
+                      {durationTypeLabels[item.durationType] || "Өдрөөр"} ·{" "}
+                      {formatLeaveDuration(item)}
+                    </p>
+                    <p className="mt-1 text-[11px] text-slate-400">
+                      Илгээсэн: {formatDateTime(item.createdAt)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {item.proofImageUrl && (
+                      <ImageIcon size={14} className="text-slate-400" />
+                    )}
+                    <span
+                      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${statusConfig[item.status]?.className}`}
+                    >
+                      {statusConfig[item.status]?.label}
+                    </span>
+                  </div>
+                </button>
+              ))
             )}
           </div>
-        </div>
-      )}
+        )}
+
+        {selectedRequest && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+            onClick={() => {
+              setSelectedRequest(null);
+              setReviewComment("");
+            }}
+          >
+            <div
+              className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-5 shadow-xl"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">
+                    {selectedRequest.lastName} {selectedRequest.firstName}
+                  </h3>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {roleLabels[selectedRequest.role] || selectedRequest.role} ·{" "}
+                    {getBranchLabel(selectedRequest.ProjectName)}
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {selectedRequest.sapId
+                      ? `SAP: ${selectedRequest.sapId}`
+                      : ""}
+                    {selectedRequest.sapId && selectedRequest.phoneNumber
+                      ? " · "
+                      : ""}
+                    {selectedRequest.phoneNumber || ""}
+                  </p>
+                  {selectedRequest.selectedApproverName && (
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      Батлах менежер: {selectedRequest.selectedApproverName}
+                    </p>
+                  )}
+                  {selectedRequest.selectedHrName && (
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      ХН хариуцагч: {selectedRequest.selectedHrName}
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedRequest(null);
+                    setReviewComment("");
+                  }}
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                  aria-label="Хаах"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-700">
+                    {durationTypeLabels[selectedRequest.durationType] ||
+                      "Өдрөөр"}{" "}
+                    · {formatLeaveDuration(selectedRequest)}
+                  </span>
+                  <span
+                    className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold ${statusConfig[selectedRequest.status]?.className}`}
+                  >
+                    {statusConfig[selectedRequest.status]?.label}
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-slate-400">
+                  Илгээсэн: {formatDateTime(selectedRequest.createdAt)}
+                </p>
+
+                <div>
+                  <p className="text-xs font-bold text-slate-800">Шалтгаан</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-600">
+                    {selectedRequest.reason}
+                  </p>
+                </div>
+
+                {selectedRequest.proofImageUrl && (
+                  <div>
+                    <p className="text-xs font-bold text-slate-800">
+                      Баталгаажуулах зураг
+                    </p>
+                    <a
+                      href={selectedRequest.proofImageUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-1.5 block w-fit .max-w-[12rem]"
+                    >
+                      <img
+                        src={selectedRequest.proofImageUrl}
+                        alt="Баталгаажуулах зураг"
+                        className="max-h-40 w-auto max-w-full rounded-lg border border-slate-200 object-contain"
+                      />
+                    </a>
+                  </div>
+                )}
+              </div>
+
+              {selectedRequest.status === "PENDING" &&
+                selectedRequest.canApprove && (
+                  <div className="mt-5 space-y-3">
+                    <div className="space-y-1.5">
+                      <label
+                        htmlFor="leaveRequestReviewComment"
+                        className="text-xs font-bold text-slate-800"
+                      >
+                        Шийдвэрийн тайлбар
+                      </label>
+                      <textarea
+                        id="leaveRequestReviewComment"
+                        value={reviewComment}
+                        onChange={(event) =>
+                          setReviewComment(event.target.value)
+                        }
+                        maxLength={1000}
+                        rows={3}
+                        placeholder="Жишээ: Орлох хүн байхгүй."
+                        className="w-full resize-none rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-900 outline-none focus:border-slate-700"
+                      />
+                      <p className="text-[11px] text-slate-500">
+                        Татгалзах үед шалтгаан заавал бичнэ. Тайлбар хүсэлт
+                        гаргасан хүнд notification-оор очно.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={updatingId === selectedRequest.id}
+                        onClick={() =>
+                          handleReview(selectedRequest.id, "APPROVED")
+                        }
+                        className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-40"
+                      >
+                        <Check size={14} />
+                        Зөвшөөрөх
+                      </button>
+                      <button
+                        type="button"
+                        disabled={
+                          updatingId === selectedRequest.id ||
+                          !reviewComment.trim()
+                        }
+                        onClick={() =>
+                          handleReview(selectedRequest.id, "REJECTED")
+                        }
+                        className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 disabled:opacity-40"
+                      >
+                        <X size={14} />
+                        Татгалзах
+                      </button>
+                    </div>
+                  </div>
+                )}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );

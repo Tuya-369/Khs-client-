@@ -432,10 +432,6 @@ export default function LeaveRequestPage() {
         <h1 className="text-lg sm:text-xl font-bold text-slate-900">
           Чөлөөний хүсэлт
         </h1>
-        <p className="mt-1 text-xs sm:text-sm text-slate-500">
-          Хугацааг ажлын өдрөөр тооцож, тохирох батлах түвшнийг автоматаар
-          сонгоно.
-        </p>
       </header>
 
       {errorMessage && (
@@ -595,10 +591,8 @@ export default function LeaveRequestPage() {
               htmlFor="selectedHrPhoneNumber"
               className="text-xs font-bold text-slate-800"
             >
-              ХН хариуцагч{" "}
-              {requiresHrSelection && (
-                <span className="text-rose-500">*</span>
-              )}
+              Хүний нөөц{" "}
+              {requiresHrSelection && <span className="text-rose-500">*</span>}
             </label>
             {requiresHrSelection ? (
               <select

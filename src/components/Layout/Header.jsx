@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Bell, CheckCheck, ShoppingBag, User, Menu, X } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -15,6 +15,7 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const notificationRef = useRef(null);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isAuthenticated, setIsAuthenticated] = useState(() =>
@@ -78,6 +79,23 @@ export default function Header() {
       window.clearInterval(refreshTimer);
     };
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isNotificationOpen) return;
+
+    const handleOutsidePointerDown = (event) => {
+      if (
+        notificationRef.current &&
+        !notificationRef.current.contains(event.target)
+      ) {
+        setIsNotificationOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handleOutsidePointerDown);
+    return () =>
+      document.removeEventListener("pointerdown", handleOutsidePointerDown);
+  }, [isNotificationOpen]);
 
   const handleNotificationClick = async (notification) => {
     const token = getAccessToken();
@@ -166,7 +184,7 @@ export default function Header() {
 
         <div className="flex items-center space-x-5 text-gray-700 relative">
           {isAuthenticated && (
-            <div className="relative">
+            <div className="relative" ref={notificationRef}>
               <button
                 type="button"
                 onClick={() => {
@@ -186,7 +204,7 @@ export default function Header() {
               </button>
 
               {isNotificationOpen && (
-                <div className="absolute right-0 top-11 z-50 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl shadow-slate-900/10">
+                <div className="absolute left-1/2 top-11 z-50 w-[min(22rem,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-xl shadow-slate-900/10 sm:left-auto sm:right-0 sm:translate-x-0">
                   <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
                     <p className="text-sm font-bold text-slate-900">Мэдэгдэл</p>
                     <button
